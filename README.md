@@ -7,6 +7,7 @@ sdk: docker
 app_port: 7860
 suggested_hardware: cpu-upgrade
 pinned: false
+license: gpl-3.0
 ---
 
 # DeerFlow-all-in-one-HFS
