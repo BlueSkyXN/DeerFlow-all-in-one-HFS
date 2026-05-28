@@ -18,6 +18,7 @@
 | `DEER_FLOW_SKILLS_PATH` | `/home/user/app/deer-flow/skills` | 上游 skills 路径。 |
 | `GATEWAY_WORKERS` | `1` | CPU Space 默认单 worker。 |
 | `GATEWAY_ENABLE_DOCS` | `true` | 暴露 `/docs`、`/redoc`、`/openapi.json`。 |
+| `GATEWAY_CORS_ORIGINS` | `https://blueskyxn-deerflow-all-in-one-hfs.hf.space` | 允许浏览器从 HF 公网 origin 发起 auth 初始化、登录、注册等写 cookie 请求。 |
 | `HF_HOME` | `/data/hf` | Hugging Face/cache 路径。 |
 | `DEER_FLOW_OPS_PORT` | `8081` | 内部 ops service 端口。 |
 | `DEER_FLOW_ADMIN_PORT` | `8082` | 内部 admin service 端口。 |
@@ -54,6 +55,7 @@ HF_SPACE_URL=https://blueskyxn-deerflow-all-in-one-hfs.hf.space
 # [VARIABLES]
 DEER_FLOW_ENV=hf-space
 DEER_FLOW_HOME=/data/deer-flow
+GATEWAY_CORS_ORIGINS=https://blueskyxn-deerflow-all-in-one-hfs.hf.space
 DEER_FLOW_ADMIN_ENABLED=true
 DEER_FLOW_ADMIN_ACTIONS_ENABLED=false
 
