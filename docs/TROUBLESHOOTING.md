@@ -19,7 +19,7 @@ Check:
 Common causes:
 
 - gateway failed to load `/data/deer-flow/config.yaml`;
-- frontend did not start after `pnpm exec next dev --webpack`;
+- frontend did not start after `pnpm start`;
 - `/data` is not writable;
 - first boot is still warming up.
 

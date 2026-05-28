@@ -108,6 +108,14 @@ RUN --mount=type=cache,target=/home/user/.local/share/pnpm/store,uid=1000,gid=10
     cd /home/user/app/deer-flow/frontend; \
     pnpm install --frozen-lockfile
 
+RUN --mount=type=cache,target=/home/user/app/deer-flow/frontend/.next/cache,uid=1000,gid=1000 \
+    set -eux; \
+    cd /home/user/app/deer-flow/frontend; \
+    NEXT_TELEMETRY_DISABLED=1 \
+    SKIP_ENV_VALIDATION=1 \
+    DEER_FLOW_INTERNAL_GATEWAY_BASE_URL="${DEER_FLOW_INTERNAL_GATEWAY_BASE_URL:-http://127.0.0.1:8001}" \
+    pnpm build
+
 COPY --chown=1000:1000 hfs /home/user/app/hfs
 COPY --chown=1000:1000 docs /home/user/app/project-docs
 COPY --chown=1000:1000 examples /home/user/app/project-examples

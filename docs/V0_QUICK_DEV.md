@@ -16,7 +16,7 @@
 4. 引入 `.env.local` 作为本地环境变量台账；该文件只用于本机记录和手动同步 HF Variables/Secrets，不提交。
 5. 增加 `examples/hf-space-variables.example.env`、`examples/hf-space-secrets.example.env` 和 `examples/local.env.example`，用于区分公开变量、密钥和本地记录。
 6. 增加文档体系，覆盖架构、HF 部署、环境变量、安全边界、本地测试、故障排查和官方部署映射。
-7. 针对 HF Space 页面加载问题，将前端从 upstream `pnpm dev` 切换为 `pnpm exec next dev --webpack`。
+7. 针对 HF Space 页面加载问题，将前端从 upstream `pnpm dev` 升级为 Docker build 阶段 `pnpm build`、runtime 阶段 `pnpm start`。
 
 ## 实现逻辑
 
@@ -36,17 +36,20 @@ Supervisor 负责拉起并守护所有内部进程，Docker HEALTHCHECK 调用 `
 
 最初为了避免 HF `cpu-basic` 上 `next build` 耗时过长，v0 使用 Next dev server 运行前端。
 
-但 upstream `pnpm dev` 实际是 `next dev --turbo`。在当前 HF Space 代理环境里，浏览器访问 `/setup` 会停在 `Loading...`，Playwright 复现显示页面没有发出 `/api/v1/auth/setup-status` 请求，DOM 也没有 React hydration 痕迹，同时控制台持续出现 `/_next/webpack-hmr` WebSocket 错误。
+但 upstream `pnpm dev` 实际会启用 Next dev/HMR 链路。在当前 HF Space 代理环境里，浏览器访问 `/setup` 会停在 `Loading...`，Playwright 复现显示页面没有发出 `/api/v1/auth/setup-status` 请求，DOM 也没有 React hydration 痕迹，同时控制台持续出现 `/_next/webpack-hmr` WebSocket 错误。
 
-因此 v0 改为：
+短暂尝试 `pnpm exec next dev --webpack` 后，HF runtime 已接管新提交，但 `/setup` 仍停留在 `Loading...`，说明问题不是 Turbopack 单点，而是 Next dev server 在 HF 公网代理后的整体不可靠。
+
+因此当前改为：
 
 ```bash
-pnpm exec next dev --webpack --hostname 127.0.0.1 --port 3000
+pnpm build
+pnpm start --hostname 127.0.0.1 --port 3000
 ```
 
-这个方案仍是快速开发版，不是最终生产优化版。它的目标是先保证 HF Space 上 setup 页面和基础 UI 可用，同时避开 Turbopack dev client 在 HF 代理下的 hydration 风险。
+这个方案仍是 v0 快速交付版，但前端运行方式必须按生产模式处理。它的目标是先保证 HF Space 上 setup 页面和基础 UI 可用，同时避开 dev HMR 在 HF 代理下的 hydration 风险。
 
-后续如果 HF 硬件或 build 时间允许，可以再切换到 `next build` + `next start`，并以浏览器 smoke 和 `runtime.raw.sha` 对齐作为验收标准。
+后续优化方向是减少 Docker build 时间和镜像体积，而不是退回 dev server。验收标准仍是浏览器 smoke 和 `runtime.raw.sha` 对齐。
 
 ## ops 和 admin 边界
 
