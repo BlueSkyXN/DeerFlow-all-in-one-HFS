@@ -15,6 +15,7 @@ STARTED_AT = time.time()
 ADMIN_PORT = int(os.environ.get("DEER_FLOW_ADMIN_PORT") or os.environ.get("ADMIN_PORT", "8082"))
 SUPERVISOR_CONFIG = os.environ.get("DEER_FLOW_SUPERVISOR_CONFIG", "/home/user/app/hfs/supervisord.conf")
 NGINX_CONFIG = os.environ.get("DEER_FLOW_NGINX_CONFIG", "/home/user/app/hfs/nginx.conf")
+NGINX_BIN = os.environ.get("DEER_FLOW_NGINX_BIN", "/usr/sbin/nginx")
 ALLOWED_RESTART_SERVICES = {"gateway", "frontend", "nginx"}
 
 SAFE_CONFIG_KEYS = [
@@ -253,11 +254,11 @@ class AdminHandler(BaseHTTPRequestHandler):
         if not self.require_admin() or not self.require_actions():
             return
         if path == "/api/reload-nginx":
-            test_result = run_fixed(["nginx", "-t", "-c", NGINX_CONFIG], timeout=10)
+            test_result = run_fixed([NGINX_BIN, "-t", "-c", NGINX_CONFIG], timeout=10)
             if not test_result.get("ok"):
                 self.send_json({"action": "reload-nginx", "ok": False, "test": test_result}, 500)
                 return
-            reload_result = run_fixed(["nginx", "-s", "reload", "-c", NGINX_CONFIG], timeout=10)
+            reload_result = run_fixed([NGINX_BIN, "-s", "reload", "-c", NGINX_CONFIG], timeout=10)
             self.send_json({"action": "reload-nginx", "ok": bool(reload_result.get("ok")), "test": test_result, "reload": reload_result}, 200 if reload_result.get("ok") else 500)
             return
         if path == "/api/restart":
