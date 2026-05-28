@@ -8,20 +8,20 @@ log_level: info
 token_usage:
   enabled: true
 
-# At least one model must be usable. The first entry targets OpenRouter by default.
-# If you use OpenAI directly, either set OPENAI_API_KEY and change the selected model
-# in the UI/config, or edit this file after first boot.
+# At least one model must be usable. The first entry targets the configured
+# Cloudflare AI Gateway OpenAI-compatible endpoint.
 models:
-  - name: openrouter-gpt-4o-mini
-    display_name: OpenRouter GPT-4o Mini
+  - name: longcat-flash-thinking-2601
+    display_name: LongCat Flash Thinking 2601
     use: langchain_openai:ChatOpenAI
-    model: openai/gpt-4o-mini
-    api_key: $OPENROUTER_API_KEY
-    base_url: https://openrouter.ai/api/v1
+    model: longcat-flash-thinking-2601
+    api_key: $OPENAI_API_KEY
+    base_url: https://gateway.ai.cloudflare.com/v1/98e18e2c295c6564954400ea5502d9f2/open/custom-hf/v2
     request_timeout: 600.0
     max_retries: 2
-    max_tokens: 4096
+    max_tokens: 8192
     temperature: 0.7
+    supports_thinking: true
     supports_vision: false
 
   - name: openai-gpt-4o-mini

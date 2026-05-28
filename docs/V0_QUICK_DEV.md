@@ -74,6 +74,7 @@ DEER_FLOW_HOME
 DEER_FLOW_CONFIG_PATH
 DEER_FLOW_EXTENSIONS_CONFIG_PATH
 DEER_FLOW_SKILLS_PATH
+DEER_FLOW_MANAGED_CONFIG
 GATEWAY_WORKERS
 GATEWAY_ENABLE_DOCS
 GATEWAY_CORS_ORIGINS
@@ -95,7 +96,16 @@ OPENROUTER_API_KEY
 OPENAI_API_KEY
 ```
 
-当前基础 UI 和 setup flow 不要求模型 provider key；真实 LLM 对话需要至少配置 `OPENROUTER_API_KEY` 或 `OPENAI_API_KEY` 后再验证。
+当前基础 UI 和 setup flow 不要求模型 provider key；真实 LLM 对话需要配置 `OPENAI_API_KEY`。本 HFS v0 默认将 `OPENAI_API_KEY` 用作 Cloudflare AI Gateway bearer token，并将第一模型配置为 `longcat-flash-thinking-2601`。
+
+模型入口：
+
+```text
+base_url=https://gateway.ai.cloudflare.com/v1/98e18e2c295c6564954400ea5502d9f2/open/custom-hf/v2
+model=longcat-flash-thinking-2601
+```
+
+`DEER_FLOW_MANAGED_CONFIG=true` 时，entrypoint 会在每次启动时用 `hfs/config.hfs.yaml` 覆盖 `DEER_FLOW_CONFIG_PATH`，确保旧 `/data/deer-flow/config.yaml` 不会继续保留 OpenRouter 默认模型。
 
 `GATEWAY_CORS_ORIGINS` 必须包含当前 HF Space 公网 origin，否则初始化管理员、登录、注册等 auth POST 会被 DeerFlow 的 CSRF 防护拒绝，表现为 `Cross-site auth request denied.`。Nginx 也需要保留 HF 代理传入的 `X-Forwarded-Proto` 和 `X-Forwarded-Host`，避免后端把公网 HTTPS 请求误判成容器内 HTTP。
 

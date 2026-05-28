@@ -29,6 +29,7 @@ export DEER_FLOW_PROJECT_ROOT="${DEER_FLOW_PROJECT_ROOT:-/home/user/app/deer-flo
 export DEER_FLOW_CONFIG_PATH="${DEER_FLOW_CONFIG_PATH:-${DEER_FLOW_HOME}/config.yaml}"
 export DEER_FLOW_EXTENSIONS_CONFIG_PATH="${DEER_FLOW_EXTENSIONS_CONFIG_PATH:-${DEER_FLOW_HOME}/extensions_config.json}"
 export DEER_FLOW_SKILLS_PATH="${DEER_FLOW_SKILLS_PATH:-${DEER_FLOW_PROJECT_ROOT}/skills}"
+export DEER_FLOW_MANAGED_CONFIG="${DEER_FLOW_MANAGED_CONFIG:-true}"
 export GATEWAY_WORKERS="${GATEWAY_WORKERS:-1}"
 export GATEWAY_ENABLE_DOCS="${GATEWAY_ENABLE_DOCS:-true}"
 export DEER_FLOW_CHANNELS_LANGGRAPH_URL="${DEER_FLOW_CHANNELS_LANGGRAPH_URL:-http://127.0.0.1:8001/api}"
@@ -55,7 +56,10 @@ mkdir -p \
   /tmp/nginx/uwsgi \
   /tmp/nginx/scgi
 
-if [ ! -f "${DEER_FLOW_CONFIG_PATH}" ]; then
+if [ "${DEER_FLOW_MANAGED_CONFIG}" = "true" ]; then
+  log "Syncing managed config at ${DEER_FLOW_CONFIG_PATH}"
+  cp /home/user/app/hfs/config.hfs.yaml "${DEER_FLOW_CONFIG_PATH}"
+elif [ ! -f "${DEER_FLOW_CONFIG_PATH}" ]; then
   log "Creating initial config at ${DEER_FLOW_CONFIG_PATH}"
   cp /home/user/app/hfs/config.hfs.yaml "${DEER_FLOW_CONFIG_PATH}"
 fi

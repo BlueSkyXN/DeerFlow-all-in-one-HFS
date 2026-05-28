@@ -16,6 +16,7 @@
 | `DEER_FLOW_CONFIG_PATH` | `/data/deer-flow/config.yaml` | 首次启动由 `hfs/config.hfs.yaml` 复制生成。 |
 | `DEER_FLOW_EXTENSIONS_CONFIG_PATH` | `/data/deer-flow/extensions_config.json` | MCP/skills 扩展配置。 |
 | `DEER_FLOW_SKILLS_PATH` | `/home/user/app/deer-flow/skills` | 上游 skills 路径。 |
+| `DEER_FLOW_MANAGED_CONFIG` | `true` | HFS 启动时用 `hfs/config.hfs.yaml` 覆盖运行态 config，确保模型/env 改动能接管旧 `/data` 配置。 |
 | `GATEWAY_WORKERS` | `1` | CPU Space 默认单 worker。 |
 | `GATEWAY_ENABLE_DOCS` | `true` | 暴露 `/docs`、`/redoc`、`/openapi.json`。 |
 | `GATEWAY_CORS_ORIGINS` | `https://blueskyxn-deerflow-all-in-one-hfs.hf.space` | 允许浏览器从 HF 公网 origin 发起 auth 初始化、登录、注册等写 cookie 请求。 |
@@ -30,8 +31,8 @@
 
 | Key | 必需性 | 说明 |
 |---|---|---|
-| `OPENROUTER_API_KEY` | 二选一 | 默认 `config.hfs.yaml` 首选 OpenRouter。 |
-| `OPENAI_API_KEY` | 二选一 | OpenAI direct model provider。 |
+| `OPENAI_API_KEY` | 必需 | 当前 HFS 默认用作 Cloudflare AI Gateway bearer token。 |
+| `OPENROUTER_API_KEY` | 可选 | 仅在你手动改回 OpenRouter 模型配置时使用。 |
 | `BETTER_AUTH_SECRET` | 推荐 | DeerFlow auth/session secret。 |
 | `DEER_FLOW_INTERNAL_AUTH_TOKEN` | 推荐 | Frontend 到 Gateway 的内部认证 token。 |
 | `DEER_FLOW_OPS_TOKEN` | 推荐 | 访问 `/_ops/status`、`/_ops/config`。 |
@@ -55,12 +56,14 @@ HF_SPACE_URL=https://blueskyxn-deerflow-all-in-one-hfs.hf.space
 # [VARIABLES]
 DEER_FLOW_ENV=hf-space
 DEER_FLOW_HOME=/data/deer-flow
+DEER_FLOW_MANAGED_CONFIG=true
 GATEWAY_CORS_ORIGINS=https://blueskyxn-deerflow-all-in-one-hfs.hf.space
 DEER_FLOW_ADMIN_ENABLED=true
 DEER_FLOW_ADMIN_ACTIONS_ENABLED=false
 
 # [SECRETS]
 OPENROUTER_API_KEY=...
+OPENAI_API_KEY=...
 BETTER_AUTH_SECRET=...
 DEER_FLOW_INTERNAL_AUTH_TOKEN=...
 DEER_FLOW_OPS_TOKEN=...
