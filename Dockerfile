@@ -108,8 +108,7 @@ RUN --mount=type=cache,target=/home/user/.local/share/pnpm/store,uid=1000,gid=10
     cd /home/user/app/deer-flow/frontend; \
     pnpm install --frozen-lockfile
 
-RUN --mount=type=cache,target=/home/user/app/deer-flow/frontend/.next/cache,uid=1000,gid=1000 \
-    set -eux; \
+RUN set -eux; \
     cd /home/user/app/deer-flow/frontend; \
     NEXT_TELEMETRY_DISABLED=1 \
     SKIP_ENV_VALIDATION=1 \
