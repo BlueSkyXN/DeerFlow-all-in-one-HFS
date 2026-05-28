@@ -50,6 +50,7 @@ RUN set -eux; \
       gnupg \
       jq \
       nginx \
+      passwd \
       procps \
       supervisor \
       tini; \
