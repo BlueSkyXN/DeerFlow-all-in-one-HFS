@@ -16,7 +16,7 @@
 4. 引入 `.env.local` 作为本地环境变量台账；该文件只用于本机记录和手动同步 HF Variables/Secrets，不提交。
 5. 增加 `examples/hf-space-variables.example.env`、`examples/hf-space-secrets.example.env` 和 `examples/local.env.example`，用于区分公开变量、密钥和本地记录。
 6. 增加文档体系，覆盖架构、HF 部署、环境变量、安全边界、本地测试、故障排查和官方部署映射。
-7. 针对 HF Space 页面加载问题，将前端从 upstream `pnpm dev` 升级为 Docker build 阶段 `pnpm build`、runtime 阶段 `pnpm start`。
+7. 针对 HF Space 页面加载问题，将前端从 upstream `pnpm dev` 升级为 Docker build 阶段 `next build --webpack`、runtime 阶段 `pnpm start`。
 
 ## 实现逻辑
 
@@ -43,13 +43,13 @@ Supervisor 负责拉起并守护所有内部进程，Docker HEALTHCHECK 调用 `
 因此当前改为：
 
 ```bash
-pnpm build
+pnpm exec next build --webpack
 pnpm start --hostname 127.0.0.1 --port 3000
 ```
 
 这个方案仍是 v0 快速交付版，但前端运行方式必须按生产模式处理。它的目标是先保证 HF Space 上 setup 页面和基础 UI 可用，同时避开 dev HMR 在 HF 代理下的 hydration 风险。
 
-后续优化方向是减少 Docker build 时间和镜像体积，而不是退回 dev server。验收标准仍是浏览器 smoke 和 `runtime.raw.sha` 对齐。
+Next 16 默认会对 dev/build 使用 Turbopack；HF `cpu-basic` 上 Turbopack production build 卡在优化阶段，因此当前显式使用 `--webpack`。后续优化方向是减少 Docker build 时间和镜像体积，而不是退回 dev server。验收标准仍是浏览器 smoke 和 `runtime.raw.sha` 对齐。
 
 ## ops 和 admin 边界
 

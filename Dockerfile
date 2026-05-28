@@ -113,7 +113,7 @@ RUN set -eux; \
     NEXT_TELEMETRY_DISABLED=1 \
     SKIP_ENV_VALIDATION=1 \
     DEER_FLOW_INTERNAL_GATEWAY_BASE_URL="${DEER_FLOW_INTERNAL_GATEWAY_BASE_URL:-http://127.0.0.1:8001}" \
-    pnpm build
+    pnpm exec next build --webpack
 
 COPY --chown=1000:1000 hfs /home/user/app/hfs
 COPY --chown=1000:1000 docs /home/user/app/project-docs

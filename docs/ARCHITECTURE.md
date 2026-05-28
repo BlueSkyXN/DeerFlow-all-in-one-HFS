@@ -53,7 +53,7 @@ container
 
 Hugging Face Docker Spaces expose one configured public app port. The container may run multiple internal ports, but external users only get the configured public app port. Nginx keeps the frontend and backend same-origin and preserves streaming/SSE behavior for long-running agent requests.
 
-The HF runtime uses `next build` during Docker image build and `next start` at runtime. A previous v0 shortcut used the upstream dev server, but HF proxying made the setup page remain at `Loading...` because the browser did not complete React hydration reliably while the dev HMR WebSocket failed. Production mode removes the HMR dependency and is the required runtime strategy for the public Space.
+The HF runtime uses `next build --webpack` during Docker image build and `next start` at runtime. A previous v0 shortcut used the upstream dev server, but HF proxying made the setup page remain at `Loading...` because the browser did not complete React hydration reliably while the dev HMR WebSocket failed. Production mode removes the HMR dependency and is the required runtime strategy for the public Space.
 
 ## Why supervisor
 
