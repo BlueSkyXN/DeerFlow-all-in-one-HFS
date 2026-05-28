@@ -14,7 +14,7 @@ container
 │  ├─ gateway
 │  │  └─ uvicorn app.gateway.app:app --host 127.0.0.1 --port 8001
 │  ├─ frontend
-│  │  └─ pnpm dev, Next.js on 127.0.0.1:3000
+│  │  └─ next dev --webpack, Next.js on 127.0.0.1:3000
 │  ├─ ops
 │  │  └─ hfs/ops_service.py on 127.0.0.1:8081
 │  ├─ admin
@@ -52,6 +52,8 @@ container
 ## Why Nginx
 
 Hugging Face Docker Spaces expose one configured public app port. The container may run multiple internal ports, but external users only get the configured public app port. Nginx keeps the frontend and backend same-origin and preserves streaming/SSE behavior for long-running agent requests.
+
+The v0 HF runtime intentionally uses `next dev --webpack` rather than the upstream `pnpm dev` script. Upstream `pnpm dev` enables Turbopack in Next.js 16; on the HF Space proxy this caused the setup page to remain at `Loading...` because the browser did not complete React hydration reliably. Webpack dev mode keeps the v0 feedback loop fast while avoiding that proxy-specific failure mode.
 
 ## Why supervisor
 
