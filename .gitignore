@@ -1,0 +1,9 @@
+.DS_Store
+.data/
+.env
+.env.*
+*.log
+*.zip
+__pycache__/
+.pytest_cache/
+local/

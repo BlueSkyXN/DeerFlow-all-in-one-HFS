@@ -1,0 +1,122 @@
+# DeerFlow-all-in-one-HFS demo configuration.
+# This file is copied to $DEER_FLOW_CONFIG_PATH on first startup.
+# Edit /data/deer-flow/config.yaml in a persistent Space if you need to customize it.
+
+config_version: 10
+log_level: info
+
+token_usage:
+  enabled: true
+
+# At least one model must be usable. The first entry targets OpenRouter by default.
+# If you use OpenAI directly, either set OPENAI_API_KEY and change the selected model
+# in the UI/config, or edit this file after first boot.
+models:
+  - name: openrouter-gpt-4o-mini
+    display_name: OpenRouter GPT-4o Mini
+    use: langchain_openai:ChatOpenAI
+    model: openai/gpt-4o-mini
+    api_key: $OPENROUTER_API_KEY
+    base_url: https://openrouter.ai/api/v1
+    request_timeout: 600.0
+    max_retries: 2
+    max_tokens: 4096
+    temperature: 0.7
+    supports_vision: false
+
+  - name: openai-gpt-4o-mini
+    display_name: OpenAI GPT-4o Mini
+    use: langchain_openai:ChatOpenAI
+    model: gpt-4o-mini
+    api_key: $OPENAI_API_KEY
+    request_timeout: 600.0
+    max_retries: 2
+    max_tokens: 4096
+    temperature: 0.7
+    supports_vision: true
+
+# Keep public demo tools conservative. Do not enable file:write or bash by default.
+tool_groups:
+  - name: web
+  - name: file:read
+
+tools:
+  # Default web search: no API key required, but quality/rate limits may vary.
+  - name: web_search
+    group: web
+    use: deerflow.community.ddg_search.tools:web_search_tool
+    max_results: 5
+
+  # Optional Tavily search. Enable this block manually if you prefer Tavily.
+  # - name: web_search
+  #   group: web
+  #   use: deerflow.community.tavily.tools:web_search_tool
+  #   max_results: 5
+  #   api_key: $TAVILY_API_KEY
+
+  - name: web_fetch
+    group: web
+    use: deerflow.community.jina_ai.tools:web_fetch_tool
+    timeout: 10
+
+  - name: image_search
+    group: web
+    use: deerflow.community.image_search.tools:image_search_tool
+    max_results: 5
+
+  - name: ls
+    group: file:read
+    use: deerflow.sandbox.tools:ls_tool
+
+  - name: read_file
+    group: file:read
+    use: deerflow.sandbox.tools:read_file_tool
+
+  - name: glob
+    group: file:read
+    use: deerflow.sandbox.tools:glob_tool
+    max_results: 100
+
+  - name: grep
+    group: file:read
+    use: deerflow.sandbox.tools:grep_tool
+    max_results: 100
+
+tool_search:
+  enabled: false
+
+loop_detection:
+  enabled: true
+  warn_threshold: 3
+  hard_limit: 5
+  window_size: 20
+  max_tracked_threads: 100
+  tool_freq_warn: 30
+  tool_freq_hard_limit: 50
+
+safety_finish_reason:
+  enabled: true
+
+uploads:
+  max_files: 5
+  max_file_size: 20971520      # 20 MiB
+  max_total_size: 52428800     # 50 MiB
+  auto_convert_documents: false
+  pdf_converter: auto
+
+sandbox:
+  use: deerflow.sandbox.local:LocalSandboxProvider
+  allow_host_bash: false
+  bash_output_max_chars: 10000
+  read_file_output_max_chars: 30000
+  ls_output_max_chars: 10000
+
+skills:
+  path: $DEER_FLOW_SKILLS_PATH
+  container_path: /mnt/skills
+
+title:
+  enabled: true
+  max_words: 6
+  max_chars: 60
+  model_name: null

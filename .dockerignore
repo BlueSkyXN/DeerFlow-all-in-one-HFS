@@ -1,0 +1,15 @@
+.git
+.gitignore
+.DS_Store
+.data
+.env
+.env.*
+*.zip
+*.log
+node_modules
+__pycache__
+.pytest_cache
+local/.data
+local/.env
+local/.env.*
+local/
