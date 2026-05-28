@@ -106,8 +106,7 @@ RUN --mount=type=cache,target=/home/user/.local/share/pnpm/store,uid=1000,gid=10
     if [ -n "${NPM_REGISTRY}" ]; then pnpm config set registry "${NPM_REGISTRY}"; fi; \
     pnpm config set store-dir /home/user/.local/share/pnpm/store; \
     cd /home/user/app/deer-flow/frontend; \
-    pnpm install --frozen-lockfile; \
-    SKIP_ENV_VALIDATION=1 pnpm build
+    pnpm install --frozen-lockfile
 
 COPY --chown=1000:1000 hfs /home/user/app/hfs
 COPY --chown=1000:1000 docs /home/user/app/project-docs

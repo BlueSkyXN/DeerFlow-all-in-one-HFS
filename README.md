@@ -36,7 +36,7 @@ Hugging Face Docker Space
 
 - Build-time clone from `bytedance/deer-flow`.
 - Backend dependencies installed with `uv`.
-- Frontend production build with `pnpm`.
+- Frontend dependencies installed with `pnpm`; HFS demo runtime uses Next dev server to avoid CPU-basic production-build timeouts.
 - Runtime supervision by `supervisord`.
 - External traffic goes through Nginx on port `7860`.
 - Runtime data writes to `/data/deer-flow`.

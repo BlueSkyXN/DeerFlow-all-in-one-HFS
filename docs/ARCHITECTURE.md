@@ -14,7 +14,7 @@ container
 │  ├─ gateway
 │  │  └─ uvicorn app.gateway.app:app --host 127.0.0.1 --port 8001
 │  ├─ frontend
-│  │  └─ pnpm start, Next.js on 127.0.0.1:3000
+│  │  └─ pnpm dev, Next.js on 127.0.0.1:3000
 │  ├─ ops
 │  │  └─ hfs/ops_service.py on 127.0.0.1:8081
 │  ├─ admin

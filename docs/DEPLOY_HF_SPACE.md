@@ -41,7 +41,7 @@ Recommended starting point:
 - CPU Upgrade for smoother builds/runtime.
 - GPU is usually unnecessary if you use external LLM APIs.
 
-The smallest CPU tier can build slowly because the image installs Python and Next.js dependencies from upstream DeerFlow.
+The smallest CPU tier can build slowly because the image installs Python and Next.js dependencies from upstream DeerFlow. This HFS demo intentionally avoids running `next build` during Docker build so CPU-basic Spaces can reach runtime more reliably.
 
 ## 4. Configure Variables
 
