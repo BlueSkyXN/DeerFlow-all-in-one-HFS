@@ -53,7 +53,7 @@ PYTHONPATH=. uv run --no-sync uvicorn app.gateway.app:app --host 127.0.0.1 --por
 Check:
 
 - fresh DeerFlow instances require first admin setup via `/setup` or the UI setup flow;
-- `OPENROUTER_API_KEY` or `OPENAI_API_KEY` is configured;
+- `OPENROUTER_API_KEY` or `OPENAI_API_KEY` is configured for real model calls; health/setup can boot with empty placeholders;
 - selected model name exists in `/data/deer-flow/config.yaml`;
 - provider base URL and model name are valid;
 - provider quota or billing is active.

@@ -80,7 +80,7 @@ DEER_FLOW_ADMIN_ENABLED=true
 DEER_FLOW_ADMIN_ACTIONS_ENABLED=false
 ```
 
-Recommended Secrets:
+Recommended Secrets. Without `OPENROUTER_API_KEY` or `OPENAI_API_KEY`, the Space can boot and show setup/health/admin surfaces, but real chat/model calls will fail until a provider key is added:
 
 ```bash
 OPENROUTER_API_KEY=...

@@ -67,7 +67,7 @@ These are also shown in `examples/hf-space-variables.example.env`.
 
 ## 5. Configure Secrets
 
-At minimum, add one model provider secret that matches your config.
+For real chat/model calls, add one model provider secret that matches your config. The container still exports empty provider placeholders so health/setup surfaces can boot before a provider key is available.
 
 For OpenRouter default config:
 
