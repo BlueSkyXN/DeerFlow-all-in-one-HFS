@@ -4,6 +4,7 @@ set -Eeuo pipefail
 BASE_URL="${1:-http://localhost:7860}"
 OPS_TOKEN="${DEER_FLOW_OPS_TOKEN:-${OPS_TOKEN:-}}"
 ADMIN_TOKEN="${DEER_FLOW_ADMIN_TOKEN:-${ADMIN_TOKEN:-}}"
+ADMIN_ENABLED="${DEER_FLOW_ADMIN_ENABLED:-${ADMIN_ENABLED:-false}}"
 
 echo "Smoke testing ${BASE_URL}"
 
@@ -46,8 +47,12 @@ if [ -n "${OPS_TOKEN}" ]; then
   check_auth /_ops/status "Bearer ${OPS_TOKEN}" "Authorization"
 fi
 
-if [ -n "${ADMIN_TOKEN}" ]; then
-  check_auth /_admin/api/status "Bearer ${ADMIN_TOKEN}" "Authorization"
-fi
+case "${ADMIN_ENABLED}" in
+  1|true|TRUE|yes|YES|on|ON)
+    if [ -n "${ADMIN_TOKEN}" ]; then
+      check_auth /_admin/api/status "Bearer ${ADMIN_TOKEN}" "Authorization"
+    fi
+    ;;
+esac
 
 echo "Smoke test passed."

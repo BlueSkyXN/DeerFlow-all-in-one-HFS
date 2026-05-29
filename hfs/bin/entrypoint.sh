@@ -58,15 +58,19 @@ mkdir -p \
 
 if [ "${DEER_FLOW_MANAGED_CONFIG}" = "true" ]; then
   log "Syncing managed config at ${DEER_FLOW_CONFIG_PATH}"
-  cp /home/user/app/hfs/config.hfs.yaml "${DEER_FLOW_CONFIG_PATH}"
+  cp /home/user/app/hfs/config/config.hfs.yaml "${DEER_FLOW_CONFIG_PATH}"
 elif [ ! -f "${DEER_FLOW_CONFIG_PATH}" ]; then
   log "Creating initial config at ${DEER_FLOW_CONFIG_PATH}"
-  cp /home/user/app/hfs/config.hfs.yaml "${DEER_FLOW_CONFIG_PATH}"
+  cp /home/user/app/hfs/config/config.hfs.yaml "${DEER_FLOW_CONFIG_PATH}"
 fi
 
 if [ ! -f "${DEER_FLOW_EXTENSIONS_CONFIG_PATH}" ]; then
   log "Creating initial extensions config at ${DEER_FLOW_EXTENSIONS_CONFIG_PATH}"
-  cp /home/user/app/hfs/extensions_config.json "${DEER_FLOW_EXTENSIONS_CONFIG_PATH}"
+  cp /home/user/app/hfs/config/extensions_config.json "${DEER_FLOW_EXTENSIONS_CONFIG_PATH}"
+fi
+
+if ! printf 'ok\n' > "${DEER_FLOW_HOME}/.hfs-persistence-probe" 2>/dev/null; then
+  log "WARN: failed to write persistence probe under ${DEER_FLOW_HOME}"
 fi
 
 # Generate stable secrets if the user did not provide them through HF Secrets.
@@ -74,9 +78,11 @@ fi
 if [ -z "${BETTER_AUTH_SECRET:-}" ]; then
   secret_file="${DEER_FLOW_HOME}/.better-auth-secret"
   if [ -f "${secret_file}" ]; then
-    export BETTER_AUTH_SECRET="$(cat "${secret_file}")"
+    BETTER_AUTH_SECRET="$(cat "${secret_file}")"
+    export BETTER_AUTH_SECRET
   else
-    export BETTER_AUTH_SECRET="$(make_secret)"
+    BETTER_AUTH_SECRET="$(make_secret)"
+    export BETTER_AUTH_SECRET
     umask 077
     printf '%s' "${BETTER_AUTH_SECRET}" > "${secret_file}"
     umask 022
@@ -86,9 +92,11 @@ fi
 if [ -z "${DEER_FLOW_INTERNAL_AUTH_TOKEN:-}" ]; then
   token_file="${DEER_FLOW_HOME}/.internal-auth-token"
   if [ -f "${token_file}" ]; then
-    export DEER_FLOW_INTERNAL_AUTH_TOKEN="$(cat "${token_file}")"
+    DEER_FLOW_INTERNAL_AUTH_TOKEN="$(cat "${token_file}")"
+    export DEER_FLOW_INTERNAL_AUTH_TOKEN
   else
-    export DEER_FLOW_INTERNAL_AUTH_TOKEN="$(make_secret)"
+    DEER_FLOW_INTERNAL_AUTH_TOKEN="$(make_secret)"
+    export DEER_FLOW_INTERNAL_AUTH_TOKEN
     umask 077
     printf '%s' "${DEER_FLOW_INTERNAL_AUTH_TOKEN}" > "${token_file}"
     umask 022
@@ -106,4 +114,4 @@ log "DEER_FLOW_EXTENSIONS_CONFIG_PATH=${DEER_FLOW_EXTENSIONS_CONFIG_PATH}"
 log "DEER_FLOW_SKILLS_PATH=${DEER_FLOW_SKILLS_PATH}"
 log "Starting supervisor"
 
-exec /usr/bin/supervisord -c /home/user/app/hfs/supervisord.conf
+exec /usr/bin/supervisord -c /home/user/app/hfs/supervisor/supervisord.conf

@@ -18,7 +18,7 @@ from typing import Any
 STARTED_AT = time.time()
 SERVICE_NAME = "DeerFlow-all-in-one-HFS"
 OPS_PORT = int(os.environ.get("DEER_FLOW_OPS_PORT") or os.environ.get("OPS_PORT", "8081"))
-SUPERVISOR_CONFIG = os.environ.get("DEER_FLOW_SUPERVISOR_CONFIG", "/home/user/app/hfs/supervisord.conf")
+SUPERVISOR_CONFIG = os.environ.get("DEER_FLOW_SUPERVISOR_CONFIG", "/home/user/app/hfs/supervisor/supervisord.conf")
 GATEWAY_HEALTH_URL = os.environ.get("DEER_FLOW_GATEWAY_HEALTH_URL", "http://127.0.0.1:8001/health")
 FRONTEND_URL = os.environ.get("DEER_FLOW_FRONTEND_URL", "http://127.0.0.1:3000/")
 
@@ -108,18 +108,6 @@ def tcp_check(name: str, host: str, port: int, timeout: float = 2.0) -> dict[str
         return {"name": name, "status": "error", "error": str(exc)}
 
 
-def writable_check(path: str) -> dict[str, Any]:
-    root = Path(path)
-    try:
-        root.mkdir(parents=True, exist_ok=True)
-        probe = root / ".ops-write-test"
-        probe.write_text("ok", encoding="utf-8")
-        probe.unlink(missing_ok=True)
-        return {"name": "data_writable", "status": "ok", "path": str(root)}
-    except Exception as exc:
-        return {"name": "data_writable", "status": "error", "path": str(root), "error": str(exc)}
-
-
 def file_check(name: str, path: str) -> dict[str, Any]:
     target = Path(path)
     return {"name": name, "status": "ok" if target.exists() else "error", "path": str(target)}
@@ -133,12 +121,13 @@ def upstream_sha() -> str:
         return ""
 
 
-def readiness() -> dict[str, Any]:
+def readiness(include_details: bool = True) -> dict[str, Any]:
+    deer_flow_home = env("DEER_FLOW_HOME", "/data/deer-flow")
     checks = [
         http_check("gateway_health", GATEWAY_HEALTH_URL),
         http_check("frontend_http", FRONTEND_URL),
         tcp_check("ops_port", "127.0.0.1", OPS_PORT),
-        writable_check(env("DEER_FLOW_HOME", "/data/deer-flow")),
+        file_check("persistence_probe", str(Path(deer_flow_home) / ".hfs-persistence-probe")),
         file_check("config", env("DEER_FLOW_CONFIG_PATH", "/data/deer-flow/config.yaml")),
         file_check("extensions_config", env("DEER_FLOW_EXTENSIONS_CONFIG_PATH", "/data/deer-flow/extensions_config.json")),
     ]
@@ -147,8 +136,8 @@ def readiness() -> dict[str, Any]:
         "status": "ok" if ok else "degraded",
         "service": SERVICE_NAME,
         "uptime_seconds": round(time.time() - STARTED_AT, 1),
-        "upstream_sha": upstream_sha(),
-        "checks": checks,
+        **({"upstream_sha": upstream_sha()} if include_details else {}),
+        "checks": checks if include_details else [{"name": item.get("name"), "status": item.get("status")} for item in checks],
     }
 
 
@@ -190,6 +179,10 @@ class OpsHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -199,6 +192,10 @@ class OpsHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Content-Security-Policy", "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -212,13 +209,13 @@ class OpsHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = self.path.split("?", 1)[0].rstrip("/") or "/"
         if path == "/":
-            self.send_html("""<!doctype html><meta charset='utf-8'><title>DeerFlow Ops</title><body><h1>DeerFlow Ops</h1><ul><li><a href='/healthz'>healthz</a></li><li><a href='/readyz'>readyz</a></li><li>/status and /config require Authorization: Bearer token</li></ul></body>""")
+            self.send_html("""<!doctype html><meta charset='utf-8'><title>DeerFlow Ops</title><body><h1>DeerFlow Ops</h1><ul><li><a href='/_ops/healthz'>healthz</a></li><li><a href='/_ops/readyz'>readyz</a></li><li>/_ops/status and /_ops/config require Authorization: Bearer token</li></ul></body>""")
             return
         if path == "/healthz":
-            self.send_json({"status": "ok", "service": SERVICE_NAME, "component": "ops", "uptime_seconds": round(time.time() - STARTED_AT, 1), "upstream_sha": upstream_sha()})
+            self.send_json({"status": "ok", "service": SERVICE_NAME, "component": "ops", "uptime_seconds": round(time.time() - STARTED_AT, 1)})
             return
         if path == "/readyz":
-            data = readiness()
+            data = readiness(include_details=False)
             self.send_json(data, 200 if data["status"] == "ok" else 503)
             return
         if not self.require_auth():

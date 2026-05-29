@@ -1,0 +1,27 @@
+schema_version = 2
+standard = "hfs-dev"
+pattern = "A"
+runtime_mode = "source-fetch"
+space_root_mode = "repo-root"
+hfs_dir = "."
+public_port = 7860
+canonical_health_endpoint = "/_ops/healthz"
+release_pin_required = true
+required_files = [
+  "README.md",
+  "Dockerfile",
+  "hfs-dev.toml",
+  "hfs",
+  "docs",
+  "scripts",
+  "AGENTS.md",
+]
+
+[[release_pins]]
+name = "DEERFLOW_REF"
+type = "git_ref"
+source = "Dockerfile ARG"
+required_for_release = true
+dev_mutable_default_allowed = true
+release_requires_commit_sha = true
+description = "Use DEERFLOW_REF=main only for development builds; release and long-running demo builds must pass a verified upstream DeerFlow commit SHA."
