@@ -9,14 +9,16 @@ import os
 import subprocess
 import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
 from typing import Any
 
 STARTED_AT = time.time()
 ADMIN_PORT = int(os.environ.get("DEER_FLOW_ADMIN_PORT") or os.environ.get("ADMIN_PORT", "8082"))
-SUPERVISOR_CONFIG = os.environ.get("DEER_FLOW_SUPERVISOR_CONFIG", "/home/user/app/hfs/supervisord.conf")
-NGINX_CONFIG = os.environ.get("DEER_FLOW_NGINX_CONFIG", "/home/user/app/hfs/nginx.conf")
+SUPERVISOR_CONFIG = os.environ.get("DEER_FLOW_SUPERVISOR_CONFIG", "/home/user/app/hfs/supervisor/supervisord.conf")
+NGINX_CONFIG = os.environ.get("DEER_FLOW_NGINX_CONFIG", "/home/user/app/hfs/nginx/nginx.conf")
 NGINX_BIN = os.environ.get("DEER_FLOW_NGINX_BIN", "/usr/sbin/nginx")
 ALLOWED_RESTART_SERVICES = {"gateway", "frontend", "nginx"}
+ADMIN_INTENT_HEADER = "DeerFlow-HFS-Admin"
 
 SAFE_CONFIG_KEYS = [
     "DEER_FLOW_ENV",
@@ -120,6 +122,21 @@ def config_payload() -> dict[str, Any]:
     }
 
 
+def audit_event(action: str, payload: dict[str, Any]) -> None:
+    root = Path(env("DEER_FLOW_HOME", "/data/deer-flow")) / "logs"
+    try:
+        root.mkdir(parents=True, exist_ok=True)
+        event = {
+            "ts": int(time.time()),
+            "action": action,
+            "payload": payload,
+        }
+        with (root / "admin-actions.jsonl").open("a", encoding="utf-8") as handle:
+            handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
+    except OSError:
+        return
+
+
 ADMIN_HTML = r"""<!doctype html>
 <html lang="en">
 <head>
@@ -164,7 +181,7 @@ function saveToken(){ localStorage.setItem('deerflow_admin_token', tokenInput.va
 function clearToken(){ localStorage.removeItem('deerflow_admin_token'); tokenInput.value=''; }
 function token(){ return tokenInput.value || localStorage.getItem('deerflow_admin_token') || ''; }
 async function api(path, options={}){
-  const headers = Object.assign({'Authorization': 'Bearer ' + token()}, options.headers || {});
+  const headers = Object.assign({'Authorization': 'Bearer ' + token(), 'X-DeerFlow-Admin-Intent': 'DeerFlow-HFS-Admin'}, options.headers || {});
   const res = await fetch(path, Object.assign({}, options, {headers}));
   const text = await res.text();
   let data; try { data = JSON.parse(text); } catch { data = text; }
@@ -172,8 +189,11 @@ async function api(path, options={}){
 }
 function loadStatus(){ api('/_admin/api/status'); }
 function loadConfig(){ api('/_admin/api/config'); }
-function reloadNginx(){ api('/_admin/api/reload-nginx', {method:'POST'}); }
-function restartService(){ api('/_admin/api/restart', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({service: document.getElementById('service').value})}); }
+function reloadNginx(){ api('/_admin/api/reload-nginx', {method:'POST', headers:{'X-DeerFlow-Admin-Confirm':'reload-nginx'}}); }
+function restartService(){
+  const service = document.getElementById('service').value;
+  api('/_admin/api/restart', {method:'POST', headers:{'Content-Type':'application/json', 'X-DeerFlow-Admin-Confirm':'restart:' + service}, body: JSON.stringify({service})});
+}
 </script>
 </body>
 </html>
@@ -232,6 +252,15 @@ class AdminHandler(BaseHTTPRequestHandler):
         self.send_json({"error": "actions_disabled", "message": "Set DEER_FLOW_ADMIN_ACTIONS_ENABLED=true to allow fixed write actions."}, 403)
         return False
 
+    def require_post_guard(self, confirmation: str) -> bool:
+        if self.headers.get("X-DeerFlow-Admin-Intent") != ADMIN_INTENT_HEADER:
+            self.send_json({"error": "csrf_guard_required", "message": "Missing admin intent header."}, 403)
+            return False
+        if self.headers.get("X-DeerFlow-Admin-Confirm") != confirmation:
+            self.send_json({"error": "confirmation_required", "expected": confirmation}, 409)
+            return False
+        return True
+
     def do_GET(self) -> None:
         path = self.path.split("?", 1)[0].rstrip("/") or "/"
         if path == "/":
@@ -254,11 +283,14 @@ class AdminHandler(BaseHTTPRequestHandler):
         if not self.require_admin() or not self.require_actions():
             return
         if path == "/api/reload-nginx":
+            if not self.require_post_guard("reload-nginx"):
+                return
             test_result = run_fixed([NGINX_BIN, "-t", "-c", NGINX_CONFIG], timeout=10)
             if not test_result.get("ok"):
                 self.send_json({"action": "reload-nginx", "ok": False, "test": test_result}, 500)
                 return
             reload_result = run_fixed([NGINX_BIN, "-s", "reload", "-c", NGINX_CONFIG], timeout=10)
+            audit_event("reload-nginx", {"ok": bool(reload_result.get("ok")), "returncode": reload_result.get("returncode")})
             self.send_json({"action": "reload-nginx", "ok": bool(reload_result.get("ok")), "test": test_result, "reload": reload_result}, 200 if reload_result.get("ok") else 500)
             return
         if path == "/api/restart":
@@ -266,7 +298,10 @@ class AdminHandler(BaseHTTPRequestHandler):
             if service not in ALLOWED_RESTART_SERVICES:
                 self.send_json({"error": "invalid_service", "allowed": sorted(ALLOWED_RESTART_SERVICES)}, 400)
                 return
+            if not self.require_post_guard(f"restart:{service}"):
+                return
             result = run_fixed(["supervisorctl", "-c", SUPERVISOR_CONFIG, "restart", service], timeout=20)
+            audit_event("restart", {"service": service, "ok": bool(result.get("ok")), "returncode": result.get("returncode")})
             self.send_json({"action": "restart", "service": service, "ok": bool(result.get("ok")), "result": result}, 200 if result.get("ok") else 500)
             return
         self.send_json({"error": "not found"}, 404)

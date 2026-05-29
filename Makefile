@@ -5,7 +5,7 @@ PORT ?= 7860
 DATA_DIR ?= $(PWD)/.data
 ENV_FILE ?= .env.local
 
-.PHONY: build run smoke shell clean
+.PHONY: build run smoke static-check shell clean
 
 build:
 	docker build \
@@ -22,6 +22,9 @@ run:
 
 smoke:
 	./scripts/smoke-test.sh http://localhost:$(PORT)
+
+static-check:
+	./scripts/static-check.sh
 
 shell:
 	docker run --rm -it \

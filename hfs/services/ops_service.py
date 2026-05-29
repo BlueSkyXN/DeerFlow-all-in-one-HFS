@@ -18,7 +18,7 @@ from typing import Any
 STARTED_AT = time.time()
 SERVICE_NAME = "DeerFlow-all-in-one-HFS"
 OPS_PORT = int(os.environ.get("DEER_FLOW_OPS_PORT") or os.environ.get("OPS_PORT", "8081"))
-SUPERVISOR_CONFIG = os.environ.get("DEER_FLOW_SUPERVISOR_CONFIG", "/home/user/app/hfs/supervisord.conf")
+SUPERVISOR_CONFIG = os.environ.get("DEER_FLOW_SUPERVISOR_CONFIG", "/home/user/app/hfs/supervisor/supervisord.conf")
 GATEWAY_HEALTH_URL = os.environ.get("DEER_FLOW_GATEWAY_HEALTH_URL", "http://127.0.0.1:8001/health")
 FRONTEND_URL = os.environ.get("DEER_FLOW_FRONTEND_URL", "http://127.0.0.1:3000/")
 
@@ -108,18 +108,6 @@ def tcp_check(name: str, host: str, port: int, timeout: float = 2.0) -> dict[str
         return {"name": name, "status": "error", "error": str(exc)}
 
 
-def writable_check(path: str) -> dict[str, Any]:
-    root = Path(path)
-    try:
-        root.mkdir(parents=True, exist_ok=True)
-        probe = root / ".ops-write-test"
-        probe.write_text("ok", encoding="utf-8")
-        probe.unlink(missing_ok=True)
-        return {"name": "data_writable", "status": "ok", "path": str(root)}
-    except Exception as exc:
-        return {"name": "data_writable", "status": "error", "path": str(root), "error": str(exc)}
-
-
 def file_check(name: str, path: str) -> dict[str, Any]:
     target = Path(path)
     return {"name": name, "status": "ok" if target.exists() else "error", "path": str(target)}
@@ -134,11 +122,12 @@ def upstream_sha() -> str:
 
 
 def readiness() -> dict[str, Any]:
+    deer_flow_home = env("DEER_FLOW_HOME", "/data/deer-flow")
     checks = [
         http_check("gateway_health", GATEWAY_HEALTH_URL),
         http_check("frontend_http", FRONTEND_URL),
         tcp_check("ops_port", "127.0.0.1", OPS_PORT),
-        writable_check(env("DEER_FLOW_HOME", "/data/deer-flow")),
+        file_check("persistence_probe", str(Path(deer_flow_home) / ".hfs-persistence-probe")),
         file_check("config", env("DEER_FLOW_CONFIG_PATH", "/data/deer-flow/config.yaml")),
         file_check("extensions_config", env("DEER_FLOW_EXTENSIONS_CONFIG_PATH", "/data/deer-flow/extensions_config.json")),
     ]

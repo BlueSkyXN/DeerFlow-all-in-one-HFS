@@ -122,12 +122,12 @@ COPY --chown=1000:1000 scripts /home/user/app/project-scripts
 COPY --chown=1000:1000 README.md /home/user/app/project-README.md
 
 RUN set -eux; \
-    chmod +x /home/user/app/hfs/entrypoint.sh /home/user/app/hfs/healthcheck.sh /home/user/app/project-scripts/smoke-test.sh; \
+    chmod +x /home/user/app/hfs/bin/entrypoint.sh /home/user/app/hfs/bin/healthcheck.sh /home/user/app/project-scripts/smoke-test.sh; \
     mkdir -p /home/user/app/deer-flow/backend/.deer-flow
 
 EXPOSE 7860
 
 HEALTHCHECK --interval=30s --timeout=10s --start-period=180s --retries=3 \
-  CMD /home/user/app/hfs/healthcheck.sh
+  CMD /home/user/app/hfs/bin/healthcheck.sh
 
-ENTRYPOINT ["tini", "--", "/home/user/app/hfs/entrypoint.sh"]
+ENTRYPOINT ["tini", "--", "/home/user/app/hfs/bin/entrypoint.sh"]

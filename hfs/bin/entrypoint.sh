@@ -58,15 +58,19 @@ mkdir -p \
 
 if [ "${DEER_FLOW_MANAGED_CONFIG}" = "true" ]; then
   log "Syncing managed config at ${DEER_FLOW_CONFIG_PATH}"
-  cp /home/user/app/hfs/config.hfs.yaml "${DEER_FLOW_CONFIG_PATH}"
+  cp /home/user/app/hfs/config/config.hfs.yaml "${DEER_FLOW_CONFIG_PATH}"
 elif [ ! -f "${DEER_FLOW_CONFIG_PATH}" ]; then
   log "Creating initial config at ${DEER_FLOW_CONFIG_PATH}"
-  cp /home/user/app/hfs/config.hfs.yaml "${DEER_FLOW_CONFIG_PATH}"
+  cp /home/user/app/hfs/config/config.hfs.yaml "${DEER_FLOW_CONFIG_PATH}"
 fi
 
 if [ ! -f "${DEER_FLOW_EXTENSIONS_CONFIG_PATH}" ]; then
   log "Creating initial extensions config at ${DEER_FLOW_EXTENSIONS_CONFIG_PATH}"
-  cp /home/user/app/hfs/extensions_config.json "${DEER_FLOW_EXTENSIONS_CONFIG_PATH}"
+  cp /home/user/app/hfs/config/extensions_config.json "${DEER_FLOW_EXTENSIONS_CONFIG_PATH}"
+fi
+
+if ! printf 'ok\n' > "${DEER_FLOW_HOME}/.hfs-persistence-probe" 2>/dev/null; then
+  log "WARN: failed to write persistence probe under ${DEER_FLOW_HOME}"
 fi
 
 # Generate stable secrets if the user did not provide them through HF Secrets.
@@ -106,4 +110,4 @@ log "DEER_FLOW_EXTENSIONS_CONFIG_PATH=${DEER_FLOW_EXTENSIONS_CONFIG_PATH}"
 log "DEER_FLOW_SKILLS_PATH=${DEER_FLOW_SKILLS_PATH}"
 log "Starting supervisor"
 
-exec /usr/bin/supervisord -c /home/user/app/hfs/supervisord.conf
+exec /usr/bin/supervisord -c /home/user/app/hfs/supervisor/supervisord.conf
