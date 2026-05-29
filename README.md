@@ -18,7 +18,7 @@ license: gpl-3.0
 
 本仓库按 `/Users/sky/Github/SKY-Prompt/hfs-dev` 的 Pattern A 对齐：它维护的是上游 DeerFlow 在 HFS 上的可运行交付包，而不是 DeerFlow 产品源码本身。因此仓库根目录必须同时作为 Hugging Face Space root 和 GitHub 维护根，不能再套一层 `cloud/hfs/`。
 
-runtime 获取模式是 `source-fetch`：Docker build 阶段通过 `DEERFLOW_REPO` / `DEERFLOW_REF` 拉取上游源码。`DEERFLOW_REF=main` 只适合开发默认值；发布态应传入已验证的 commit SHA。对齐声明见 [hfs-dev.toml](hfs-dev.toml)。
+runtime 获取模式是 `source-fetch`：Docker build 阶段通过 `DEERFLOW_REPO` / `DEERFLOW_REF` 拉取上游源码。`DEERFLOW_REF=main` 只适合开发默认值；发布态或长期运行的 demo 应传入已验证的上游 commit SHA。对齐声明见 [hfs-dev.toml](hfs-dev.toml)，其中 v2 `[[release_pins]]` 把 `DEERFLOW_REF` 标为必须使用 commit SHA 的 release pin。
 
 当前线上目标：
 
@@ -69,8 +69,8 @@ Hugging Face Docker Space
 | `/_ops/readyz` | 公开综合 readiness 检查。 |
 | `/_ops/status` | 需要 `DEER_FLOW_OPS_TOKEN` 的 supervisor/readiness 状态。 |
 | `/_ops/config` | 需要 `DEER_FLOW_OPS_TOKEN` 的安全配置和 secret presence 视图。 |
-| `/_admin/` | 浏览器管理入口。 |
-| `/_admin/api/status` | 需要 `DEER_FLOW_ADMIN_TOKEN` 的 admin 状态。 |
+| `/_admin/` | 公开浏览器管理 shell；仅用于输入 token 和触发受保护 API，本身不得泄露 secret、配置值或管理能力。 |
+| `/_admin/api/status` | admin API，默认由 `DEER_FLOW_ADMIN_ENABLED=false` 关闭；维护窗口启用后仍需要 `DEER_FLOW_ADMIN_TOKEN`。 |
 
 ## 必需配置
 

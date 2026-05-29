@@ -99,7 +99,7 @@ make static-check
 - shell / Python 语法。
 - Pattern A root layout 没有误迁到 `cloud/hfs/`。
 - `README.md` metadata、`Dockerfile EXPOSE`、Nginx listen、healthcheck、smoke 端口一致。
-- `hfs/` 内部路径、admin 默认关闭、`DEERFLOW_REF` 发布 pin surface 存在。
+- `hfs/` 内部路径、admin API/write actions 默认关闭、`DEERFLOW_REF` v2 structured release pin 存在。
 
 ## Shell
 

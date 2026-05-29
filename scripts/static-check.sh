@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import re
 import sys
+import tomllib
 from pathlib import Path
 
 
@@ -96,6 +97,7 @@ admin = read("hfs/services/admin_service.py")
 hf_vars = read("examples/hf-space-variables.example.env")
 makefile = read("Makefile")
 manifest = read("hfs-dev.toml")
+manifest_data = tomllib.loads(manifest)
 
 frontmatter = readme.split("---", 2)
 require(len(frontmatter) >= 3, "README.md must start with HF metadata frontmatter")
@@ -108,12 +110,39 @@ require("CMD /home/user/app/hfs/bin/healthcheck.sh" in dockerfile, "Dockerfile h
 require('ENTRYPOINT ["tini", "--", "/home/user/app/hfs/bin/entrypoint.sh"]' in dockerfile, "Dockerfile entrypoint must use hfs/bin/entrypoint.sh")
 require("ARG DEERFLOW_REF=main" in dockerfile, "Dockerfile must expose DEERFLOW_REF build surface")
 require("--build-arg DEERFLOW_REF=$(DEERFLOW_REF)" in makefile, "Makefile build must pass DEERFLOW_REF")
-require('standard = "hfs-dev"' in manifest, "hfs-dev.toml must declare hfs-dev standard")
-require('pattern = "A"' in manifest, "hfs-dev.toml must declare Pattern A")
-require('runtime_mode = "source-fetch"' in manifest, "hfs-dev.toml must declare source-fetch runtime mode")
-require('space_root_mode = "repo-root"' in manifest, "hfs-dev.toml must declare repo-root space root")
-require('release_pin_required = true' in manifest, "hfs-dev.toml must require release pinning")
-require("DEERFLOW_REF=<deer-flow upstream commit SHA>" in manifest, "hfs-dev.toml must declare DEERFLOW_REF commit SHA pin surface")
+expected_manifest = {
+    "schema_version": 2,
+    "standard": "hfs-dev",
+    "pattern": "A",
+    "runtime_mode": "source-fetch",
+    "space_root_mode": "repo-root",
+    "hfs_dir": ".",
+    "public_port": 7860,
+    "release_pin_required": True,
+}
+for key, value in expected_manifest.items():
+    require(manifest_data.get(key) == value, f"hfs-dev.toml {key} must be {value!r}")
+require("release_pin_surfaces" not in manifest_data, "hfs-dev.toml v2 must use structured [[release_pins]]")
+release_pins = manifest_data.get("release_pins")
+require(isinstance(release_pins, list) and release_pins, "hfs-dev.toml must declare structured release_pins")
+require(all(isinstance(pin, dict) for pin in release_pins), "hfs-dev.toml release_pins entries must be tables")
+pins_by_name = {pin.get("name"): pin for pin in release_pins if isinstance(pin, dict)}
+require(len(pins_by_name) == len(release_pins), "hfs-dev.toml release_pins names must be unique")
+require(set(pins_by_name) == {"DEERFLOW_REF"}, "hfs-dev.toml release_pins must declare only DEERFLOW_REF")
+deerflow_ref_pin = pins_by_name["DEERFLOW_REF"]
+expected_ref_pin = {
+    "type": "git_ref",
+    "source": "Dockerfile ARG",
+    "required_for_release": True,
+    "dev_mutable_default_allowed": True,
+    "release_requires_commit_sha": True,
+}
+for key, value in expected_ref_pin.items():
+    require(deerflow_ref_pin.get(key) == value, f"hfs-dev.toml DEERFLOW_REF.{key} must be {value!r}")
+require(
+    isinstance(deerflow_ref_pin.get("description"), str) and "commit SHA" in deerflow_ref_pin["description"],
+    "hfs-dev.toml DEERFLOW_REF must document commit SHA release requirement",
+)
 
 require("listen 7860 default_server;" in nginx, "Nginx must listen on 7860")
 require("return 404" in nginx and "/api/sandboxes" in nginx, "Nginx must keep /api/sandboxes disabled")
@@ -134,7 +163,7 @@ require("persistence_probe" in ops, "ops readiness must check entrypoint persist
 require("X-DeerFlow-Admin-Intent" in admin, "admin POSTs must require intent header")
 require("X-DeerFlow-Admin-Confirm" in admin, "admin POSTs must require confirmation header")
 require("admin-actions.jsonl" in admin, "admin actions must write audit log")
-require("DEER_FLOW_ADMIN_ENABLED=false" in hf_vars, "HF variables example must keep admin disabled by default")
+require("DEER_FLOW_ADMIN_ENABLED=false" in hf_vars, "HF variables example must keep admin APIs disabled by default")
 
 print("static-check: ok")
 PY

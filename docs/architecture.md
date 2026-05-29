@@ -126,9 +126,9 @@ Ops 服务不提供命令执行、不读取任意文件、不接受用户自定�
 
 `hfs/services/admin_service.py` 是受限管理服务：
 
-- `/_admin/`：浏览器 UI，用于输入 `DEER_FLOW_ADMIN_TOKEN`。
-- `/_admin/api/status`：需要 token，返回 admin 状态和 supervisor 进程状态。
-- `/_admin/api/config`：需要 token，返回安全配置和 secret presence。
+- `/_admin/`：公开浏览器 shell，用于输入 `DEER_FLOW_ADMIN_TOKEN` 并调用受保护 API；shell 本身不得泄露 secret、配置值或管理能力。
+- `/_admin/api/status`：默认由 `DEER_FLOW_ADMIN_ENABLED=false` 关闭；维护窗口启用后需要 token，返回 admin 状态和 supervisor 进程状态。
+- `/_admin/api/config`：默认关闭；维护窗口启用后需要 token，返回安全配置和 secret presence。
 - `/_admin/api/reload-nginx`：固定动作，只有 `DEER_FLOW_ADMIN_ACTIONS_ENABLED=true` 时可用。
 - `/_admin/api/restart`：固定 supervisor restart，仅允许 `gateway`、`frontend`、`nginx`。
 

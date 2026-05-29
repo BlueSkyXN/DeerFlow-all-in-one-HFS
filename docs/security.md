@@ -79,7 +79,9 @@ Nginx 需要正确传递 `X-Forwarded-Proto` 和 `X-Forwarded-Host`，当前 `hf
 /_admin/
 ```
 
-默认 `DEER_FLOW_ADMIN_ENABLED=false`，只保留 HTML shell。维护窗口显式启用后，需要 `DEER_FLOW_ADMIN_TOKEN`：
+`/_admin/` 可以公开路由，但它只是 token 输入和 API 调用 shell；默认不得返回 secret、完整配置、进程详情或任何写能力。
+
+默认 `DEER_FLOW_ADMIN_ENABLED=false`，admin API 关闭，只保留 HTML shell。维护窗口显式启用后，API 仍需要 `DEER_FLOW_ADMIN_TOKEN`：
 
 ```text
 /_admin/api/status
@@ -88,7 +90,7 @@ Nginx 需要正确传递 `X-Forwarded-Proto` 和 `X-Forwarded-Host`，当前 `hf
 /_admin/api/restart
 ```
 
-写动作还需要：
+写动作默认由 `DEER_FLOW_ADMIN_ACTIONS_ENABLED=false` 关闭；维护窗口确需启用时，还需要：
 
 ```bash
 DEER_FLOW_ADMIN_ACTIONS_ENABLED=true

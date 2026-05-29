@@ -124,4 +124,4 @@ hf spaces secrets add BlueSkyXN/DeerFlow-all-in-one-HFS -s DEER_FLOW_ADMIN_TOKEN
 - `hfs/config/config.hfs.yaml` 改动需要 push HF 并等待 rebuild。
 - `DEER_FLOW_MANAGED_CONFIG=true` 会在启动时覆盖旧 `/data/deer-flow/config.yaml`。
 - 如果设为 false，运行态 config 会成为 source of truth，仓库模板不再自动接管。
-- Hugging Face Docker Space 的 Variables 会同时作为 Docker build args 和 runtime env 注入；因此 `DEERFLOW_REF=<commit-sha>` 可作为 source-fetch 发布态 pin surface。
+- Hugging Face Docker Space 的 Variables 会同时作为 Docker build args 和 runtime env 注入；因此 `DEERFLOW_REF=<commit-sha>` 是 source-fetch 发布态的结构化 release pin。
