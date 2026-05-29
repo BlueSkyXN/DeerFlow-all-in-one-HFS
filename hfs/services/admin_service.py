@@ -158,28 +158,22 @@ ADMIN_HTML = r"""<!doctype html>
 <body>
 <main>
   <h1>DeerFlow Admin</h1>
-  <p>Token-protected control surface for this Hugging Face Space. Write actions are disabled unless DEER_FLOW_ADMIN_ACTIONS_ENABLED=true.</p>
+  <p>Token-protected control surface for this Hugging Face Space. The public shell only stores a tab-local token and checks protected API status.</p>
   <section class="card">
     <h2>Token</h2>
-    <div class="row"><input id="token" type="password" placeholder="DEER_FLOW_ADMIN_TOKEN" size="48" /><button onclick="saveToken()">Save token</button><button class="secondary" onclick="clearToken()">Clear</button></div>
+    <p>The token is kept only in this browser tab and is not stored in browser storage.</p>
+    <div class="row"><input id="token" type="password" autocomplete="off" placeholder="DEER_FLOW_ADMIN_TOKEN" size="48" /></div>
   </section>
   <section class="card">
     <h2>Status</h2>
     <div class="row"><button onclick="loadStatus()">Refresh status</button><button class="secondary" onclick="loadConfig()">Config presence</button></div>
     <pre id="output">No request yet.</pre>
   </section>
-  <section class="card">
-    <h2>Fixed actions</h2>
-    <div class="row"><button onclick="reloadNginx()">Reload nginx</button><select id="service"><option>gateway</option><option>frontend</option><option>nginx</option></select><button onclick="restartService()">Restart service</button></div>
-  </section>
 </main>
 <script>
 const output = document.getElementById('output');
 const tokenInput = document.getElementById('token');
-tokenInput.value = localStorage.getItem('deerflow_admin_token') || '';
-function saveToken(){ localStorage.setItem('deerflow_admin_token', tokenInput.value); }
-function clearToken(){ localStorage.removeItem('deerflow_admin_token'); tokenInput.value=''; }
-function token(){ return tokenInput.value || localStorage.getItem('deerflow_admin_token') || ''; }
+function token(){ return tokenInput.value; }
 async function api(path, options={}){
   const headers = Object.assign({'Authorization': 'Bearer ' + token(), 'X-DeerFlow-Admin-Intent': 'DeerFlow-HFS-Admin'}, options.headers || {});
   const res = await fetch(path, Object.assign({}, options, {headers}));
@@ -189,11 +183,6 @@ async function api(path, options={}){
 }
 function loadStatus(){ api('/_admin/api/status'); }
 function loadConfig(){ api('/_admin/api/config'); }
-function reloadNginx(){ api('/_admin/api/reload-nginx', {method:'POST', headers:{'X-DeerFlow-Admin-Confirm':'reload-nginx'}}); }
-function restartService(){
-  const service = document.getElementById('service').value;
-  api('/_admin/api/restart', {method:'POST', headers:{'Content-Type':'application/json', 'X-DeerFlow-Admin-Confirm':'restart:' + service}, body: JSON.stringify({service})});
-}
 </script>
 </body>
 </html>
@@ -211,6 +200,10 @@ class AdminHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -220,6 +213,13 @@ class AdminHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header(
+            "Content-Security-Policy",
+            "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'",
+        )
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)

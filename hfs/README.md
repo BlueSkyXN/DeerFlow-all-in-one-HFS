@@ -12,4 +12,4 @@ hfs/
 └─ services/      ops/admin Python stdlib services
 ```
 
-Keep ops read-only. Keep admin APIs and write actions disabled by default. The `/_admin/` HTML shell may be publicly routed, but it must stay inert until a valid token is supplied and must not leak secrets, config values, or action capability by itself. Enabling admin actions requires an explicit maintenance window, token auth, intent/confirm headers, and audit logging.
+Keep ops read-only. Keep admin APIs and write actions disabled by default. The `/_admin/` HTML shell may be publicly routed, but it must stay inert until a valid token is supplied, must not persist the token in browser storage, and must not leak secrets, config values, or write-action capability by itself. Enabling admin actions requires an explicit maintenance window, token auth, intent/confirm headers, and audit logging.

@@ -21,7 +21,7 @@ hf spaces logs BlueSkyXN/DeerFlow-all-in-one-HFS --build -n 300
 
 ## `/_ops/readyz` fails
 
-`/_ops/readyz` 检查：
+`/_ops/readyz` 公开返回 coarse readiness，只暴露检查项名称和状态。具体检查包括：
 
 - Gateway health。
 - Frontend HTTP。
@@ -37,7 +37,7 @@ hf spaces logs BlueSkyXN/DeerFlow-all-in-one-HFS --build -n 300
 - `/data` 不可写。
 - 首次启动仍在 warming up。
 
-带 token 查看详细状态：
+带 token 查看详细状态、具体错误、路径和 upstream SHA：
 
 ```bash
 curl -H "Authorization: Bearer $DEER_FLOW_OPS_TOKEN" \

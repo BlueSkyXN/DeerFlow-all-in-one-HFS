@@ -146,6 +146,12 @@ require(
 
 require("listen 7860 default_server;" in nginx, "Nginx must listen on 7860")
 require("return 404" in nginx and "/api/sandboxes" in nginx, "Nginx must keep /api/sandboxes disabled")
+require("client_max_body_size 2M;" in nginx, "Nginx default body limit must stay small")
+require("client_max_body_size 16k;" in nginx, "Nginx ops route must use a small body limit")
+require("client_max_body_size 64k;" in nginx, "Nginx admin route must use a small body limit")
+require("client_max_body_size 100M;" in nginx, "Nginx upload route must keep explicit upload body limit")
+require("limit_except GET" in nginx, "Nginx ops route must reject non-GET methods")
+require("limit_except GET POST" in nginx, "Nginx admin route must reject unexpected methods")
 require("http://127.0.0.1:7860/_ops/readyz" in healthcheck, "healthcheck must go through Nginx /_ops/readyz")
 require('BASE_URL="${1:-http://localhost:7860}"' in smoke, "smoke default must target localhost:7860")
 
@@ -160,9 +166,14 @@ require("/home/user/app/hfs/nginx/nginx.conf" in supervisor, "supervisor must st
 
 require("ops-write-test" not in ops, "ops readiness must not write request-time probe")
 require("persistence_probe" in ops, "ops readiness must check entrypoint persistence probe")
+require("readiness(include_details=False)" in ops, "public ops readiness must use coarse detail")
+require("Content-Security-Policy" in ops, "ops service must emit security headers")
 require("X-DeerFlow-Admin-Intent" in admin, "admin POSTs must require intent header")
 require("X-DeerFlow-Admin-Confirm" in admin, "admin POSTs must require confirmation header")
 require("admin-actions.jsonl" in admin, "admin actions must write audit log")
+require("Fixed actions" not in admin, "public admin shell must not disclose write action UI")
+require("localStorage" not in admin, "public admin shell must not persist admin tokens in browser storage")
+require("Content-Security-Policy" in admin, "admin service must emit security headers")
 require("DEER_FLOW_ADMIN_ENABLED=false" in hf_vars, "HF variables example must keep admin APIs disabled by default")
 
 print("static-check: ok")

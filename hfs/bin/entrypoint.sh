@@ -78,9 +78,11 @@ fi
 if [ -z "${BETTER_AUTH_SECRET:-}" ]; then
   secret_file="${DEER_FLOW_HOME}/.better-auth-secret"
   if [ -f "${secret_file}" ]; then
-    export BETTER_AUTH_SECRET="$(cat "${secret_file}")"
+    BETTER_AUTH_SECRET="$(cat "${secret_file}")"
+    export BETTER_AUTH_SECRET
   else
-    export BETTER_AUTH_SECRET="$(make_secret)"
+    BETTER_AUTH_SECRET="$(make_secret)"
+    export BETTER_AUTH_SECRET
     umask 077
     printf '%s' "${BETTER_AUTH_SECRET}" > "${secret_file}"
     umask 022
@@ -90,9 +92,11 @@ fi
 if [ -z "${DEER_FLOW_INTERNAL_AUTH_TOKEN:-}" ]; then
   token_file="${DEER_FLOW_HOME}/.internal-auth-token"
   if [ -f "${token_file}" ]; then
-    export DEER_FLOW_INTERNAL_AUTH_TOKEN="$(cat "${token_file}")"
+    DEER_FLOW_INTERNAL_AUTH_TOKEN="$(cat "${token_file}")"
+    export DEER_FLOW_INTERNAL_AUTH_TOKEN
   else
-    export DEER_FLOW_INTERNAL_AUTH_TOKEN="$(make_secret)"
+    DEER_FLOW_INTERNAL_AUTH_TOKEN="$(make_secret)"
+    export DEER_FLOW_INTERNAL_AUTH_TOKEN
     umask 077
     printf '%s' "${DEER_FLOW_INTERNAL_AUTH_TOKEN}" > "${token_file}"
     umask 022

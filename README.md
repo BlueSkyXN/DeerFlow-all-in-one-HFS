@@ -69,7 +69,7 @@ Hugging Face Docker Space
 | `/_ops/readyz` | 公开综合 readiness 检查。 |
 | `/_ops/status` | 需要 `DEER_FLOW_OPS_TOKEN` 的 supervisor/readiness 状态。 |
 | `/_ops/config` | 需要 `DEER_FLOW_OPS_TOKEN` 的安全配置和 secret presence 视图。 |
-| `/_admin/` | 公开浏览器管理 shell；仅用于输入 token 和触发受保护 API，本身不得泄露 secret、配置值或管理能力。 |
+| `/_admin/` | 公开浏览器管理 shell；仅用于输入 tab-local token 和触发受保护 API，本身不得泄露 secret、配置值或写动作能力。 |
 | `/_admin/api/status` | admin API，默认由 `DEER_FLOW_ADMIN_ENABLED=false` 关闭；维护窗口启用后仍需要 `DEER_FLOW_ADMIN_TOKEN`。 |
 
 ## 必需配置

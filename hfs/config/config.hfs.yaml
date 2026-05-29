@@ -1,6 +1,7 @@
 # DeerFlow-all-in-one-HFS demo configuration.
-# This file is copied to $DEER_FLOW_CONFIG_PATH on first startup.
-# Edit /data/deer-flow/config.yaml in a persistent Space if you need to customize it.
+# With DEER_FLOW_MANAGED_CONFIG=true, this file overwrites
+# $DEER_FLOW_CONFIG_PATH on every startup.
+# Set DEER_FLOW_MANAGED_CONFIG=false before relying on runtime edits under /data.
 
 config_version: 10
 log_level: info

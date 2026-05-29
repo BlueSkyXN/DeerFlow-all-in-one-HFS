@@ -121,7 +121,7 @@ def upstream_sha() -> str:
         return ""
 
 
-def readiness() -> dict[str, Any]:
+def readiness(include_details: bool = True) -> dict[str, Any]:
     deer_flow_home = env("DEER_FLOW_HOME", "/data/deer-flow")
     checks = [
         http_check("gateway_health", GATEWAY_HEALTH_URL),
@@ -136,8 +136,8 @@ def readiness() -> dict[str, Any]:
         "status": "ok" if ok else "degraded",
         "service": SERVICE_NAME,
         "uptime_seconds": round(time.time() - STARTED_AT, 1),
-        "upstream_sha": upstream_sha(),
-        "checks": checks,
+        **({"upstream_sha": upstream_sha()} if include_details else {}),
+        "checks": checks if include_details else [{"name": item.get("name"), "status": item.get("status")} for item in checks],
     }
 
 
@@ -179,6 +179,10 @@ class OpsHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -188,6 +192,10 @@ class OpsHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("Referrer-Policy", "no-referrer")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Content-Security-Policy", "default-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -201,13 +209,13 @@ class OpsHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = self.path.split("?", 1)[0].rstrip("/") or "/"
         if path == "/":
-            self.send_html("""<!doctype html><meta charset='utf-8'><title>DeerFlow Ops</title><body><h1>DeerFlow Ops</h1><ul><li><a href='/healthz'>healthz</a></li><li><a href='/readyz'>readyz</a></li><li>/status and /config require Authorization: Bearer token</li></ul></body>""")
+            self.send_html("""<!doctype html><meta charset='utf-8'><title>DeerFlow Ops</title><body><h1>DeerFlow Ops</h1><ul><li><a href='/_ops/healthz'>healthz</a></li><li><a href='/_ops/readyz'>readyz</a></li><li>/_ops/status and /_ops/config require Authorization: Bearer token</li></ul></body>""")
             return
         if path == "/healthz":
-            self.send_json({"status": "ok", "service": SERVICE_NAME, "component": "ops", "uptime_seconds": round(time.time() - STARTED_AT, 1), "upstream_sha": upstream_sha()})
+            self.send_json({"status": "ok", "service": SERVICE_NAME, "component": "ops", "uptime_seconds": round(time.time() - STARTED_AT, 1)})
             return
         if path == "/readyz":
-            data = readiness()
+            data = readiness(include_details=False)
             self.send_json(data, 200 if data["status"] == "ok" else 503)
             return
         if not self.require_auth():

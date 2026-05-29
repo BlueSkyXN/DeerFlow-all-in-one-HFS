@@ -71,6 +71,8 @@ Nginx 需要正确传递 `X-Forwarded-Proto` 和 `X-Forwarded-Host`，当前 `hf
 
 `/_ops/config` 只返回白名单配置和 secret presence，不返回 secret 值。
 
+Nginx 对 `/_ops/*` 只允许 `GET`，并把 request body limit 收窄到 `16k`，避免公开诊断面继承上传接口的 100M 限制。
+
 ## Admin routes
 
 公开 HTML shell：
@@ -105,6 +107,8 @@ DEER_FLOW_ADMIN_ACTIONS_ENABLED=false
 
 写动作还需要 `X-DeerFlow-Admin-Intent: DeerFlow-HFS-Admin` 和精确的 `X-DeerFlow-Admin-Confirm` header，并会写入 `/data/deer-flow/logs/admin-actions.jsonl` 审计记录。
 
+Nginx 对 `/_admin/*` 只允许 `GET` / `POST`，并把 request body limit 收窄到 `64k`。公开 HTML shell 不持久化 admin token 到 browser storage。
+
 Admin restart 仅允许固定服务：
 
 ```text
@@ -133,6 +137,7 @@ nginx
 
 ```bash
 OPENAI_API_KEY
+OPENROUTER_API_KEY
 BETTER_AUTH_SECRET
 DEER_FLOW_INTERNAL_AUTH_TOKEN
 DEER_FLOW_OPS_TOKEN

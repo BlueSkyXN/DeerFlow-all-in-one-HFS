@@ -115,9 +115,9 @@ supports_thinking: true
 
 `hfs/services/ops_service.py` 是只读诊断服务：
 
-- `/_ops/healthz`：公开，返回 ops service 存活和上游 DeerFlow SHA。
-- `/_ops/readyz`：公开，检查 Gateway、frontend、ops port、entrypoint 写入的 persistence probe、config 文件和 extensions config 文件。
-- `/_ops/status`：需要 `Authorization: Bearer $DEER_FLOW_OPS_TOKEN`，返回 readiness 和 supervisor status。
+- `/_ops/healthz`：公开，返回 coarse ops service 存活状态，不返回 upstream SHA 或文件路径。
+- `/_ops/readyz`：公开，返回 coarse readiness 和各检查项名称/status，不返回内部路径、错误详情或 upstream SHA。
+- `/_ops/status`：需要 `Authorization: Bearer $DEER_FLOW_OPS_TOKEN`，返回详细 readiness、upstream SHA 和 supervisor status。
 - `/_ops/config`：需要 token，返回白名单环境变量和 secret presence，不返回 secret 值。
 
 Ops 服务不提供命令执行、不读取任意文件、不接受用户自定义检查命令。
