@@ -2,6 +2,12 @@
 
 本仓库不是 DeerFlow 官方部署方式的替代品，而是把 DeerFlow app layer 包装成 Hugging Face Docker Space demo。核心适配点是：单容器、单公网端口、外部模型 API、禁用复杂 sandbox/provisioner。
 
+## 当前上游基线
+
+本仓当前验证目标是 `bytedance/deer-flow` commit `45865e9f3f5ac1cd05bfce9406b30ea8da864c52`，其 backend/frontend package version 为 `2.1.0`。这是审计时最新 `main` 的 source candidate，不是正式 `v2.1.0` release。Dockerfile 通过 shallow `git fetch --depth 1 <sha>` 获取该提交，避免把 SHA 当 branch clone 后退化成完整仓库下载。
+
+从此前 live 镜像的 `8decfd327ea7bcef2d60598e8b8428b63908acc5` 到当前基线，上游构建和启动主契约仍保持 Python 3.12、Node 22、pnpm 10.26.2、`uv sync`、Gateway `8001`、frontend `3000`。HFS 必须跟进的是 `config_version: 26`、统一 SQLite 路径和 `AUTH_JWT_SECRET`；不是重新引入 provisioner 或改动公网端口。
+
 ## 官方本地开发形态
 
 官方概念形态：
@@ -44,6 +50,7 @@ HFS 中的变化：
 - 只暴露 HF 要求的单一公网端口 `7860`。
 - 保留路径路由和 same-origin API 访问。
 - 禁用 `/api/sandboxes` provisioner。
+- SQLite 显式放到 `$DEER_FLOW_DB_DIR`，默认 `/data/deer-flow/data`，而不是 Gateway source checkout 下的相对目录。
 
 ## 官方 LocalSandboxProvider
 

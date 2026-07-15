@@ -22,6 +22,6 @@ name = "DEERFLOW_REF"
 type = "git_ref"
 source = "Dockerfile ARG"
 required_for_release = true
-dev_mutable_default_allowed = true
+dev_mutable_default_allowed = false
 release_requires_commit_sha = true
-description = "Use DEERFLOW_REF=main only for development builds; release and long-running demo builds must pass a verified upstream DeerFlow commit SHA."
+description = "The committed default is a verified upstream DeerFlow commit SHA. Override DEERFLOW_REF=main only for intentional development builds, never for a release or long-running demo."

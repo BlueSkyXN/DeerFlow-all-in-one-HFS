@@ -46,6 +46,7 @@ git push hf main
 DEER_FLOW_ENV=hf-space
 DEER_FLOW_PROJECT_ROOT=/home/user/app/deer-flow
 DEER_FLOW_HOME=/data/deer-flow
+DEER_FLOW_DB_DIR=/data/deer-flow/data
 DEER_FLOW_CONFIG_PATH=/data/deer-flow/config.yaml
 DEER_FLOW_EXTENSIONS_CONFIG_PATH=/data/deer-flow/extensions_config.json
 DEER_FLOW_SKILLS_PATH=/home/user/app/deer-flow/skills
@@ -53,20 +54,21 @@ DEER_FLOW_MANAGED_CONFIG=true
 GATEWAY_WORKERS=1
 GATEWAY_ENABLE_DOCS=true
 GATEWAY_CORS_ORIGINS=https://blueskyxn-deerflow-all-in-one-hfs.hf.space
+DEER_FLOW_TRUSTED_ORIGINS=https://blueskyxn-deerflow-all-in-one-hfs.hf.space
 HF_HOME=/data/hf
 DEER_FLOW_OPS_PORT=8081
+DEER_FLOW_OPS_SESSION_TTL_SECONDS=3600
+DEER_FLOW_OPS_COOKIE_SECURE=auto
+DEER_FLOW_OPS_DEFAULT_CHECKS_ENABLED=true
+DEER_FLOW_OPS_LOG_DIR=/data/deer-flow/logs
+DEER_FLOW_OPS_LOG_LINES_MAX=1000
+DEER_FLOW_OPS_LOG_TAIL_MAX_BYTES=1048576
 DEER_FLOW_ADMIN_PORT=8082
 DEER_FLOW_ADMIN_ENABLED=false
 DEER_FLOW_ADMIN_ACTIONS_ENABLED=false
 ```
 
-发布态 build pin：
-
-```bash
-DEERFLOW_REF=<deer-flow-upstream-commit-sha>
-```
-
-`DEERFLOW_REF=main` 仅用于开发迭代。提交到长期运行的 HF Space 前，应把它设为已验证的 DeerFlow upstream commit SHA；HF Docker Space 会把 Variables 作为 Docker build args 传入 `Dockerfile ARG`。
+发布态 build pin 不在 HF Variables 中配置，而是提交在 `Dockerfile ARG DEERFLOW_REF`。当前 pin 为 `45865e9f3f5ac1cd05bfce9406b30ea8da864c52`，是审计时最新 `main` 的 `2.1.0` source candidate。HF Variables 不会自动变成 Docker build args。
 
 ## 5. Secrets
 
@@ -79,7 +81,7 @@ OPENAI_API_KEY=<cloudflare-ai-gateway-bearer-token>
 推荐固定 secret：
 
 ```bash
-BETTER_AUTH_SECRET=<long-random-secret>
+AUTH_JWT_SECRET=<long-random-secret>
 DEER_FLOW_INTERNAL_AUTH_TOKEN=<long-random-token>
 DEER_FLOW_OPS_TOKEN=<ops-token>
 DEER_FLOW_ADMIN_TOKEN=<admin-token>
@@ -111,9 +113,9 @@ OPENROUTER_API_KEY=...
 
 - `config.yaml`
 - `extensions_config.json`
-- auth/session 相关持久状态
-- `threads/`
-- `uploads/`
+- `data/deerflow.db`，包含账号、threads metadata、checkpointer 和应用数据库状态
+- `.jwt_secret`，仅当未通过 HF Secret 提供 `AUTH_JWT_SECRET`
+- `users/<user-id>/...` 下的用户、thread、upload 和 memory 数据
 - `logs/`
 - generated secrets，前提是没有通过 HF Secrets 显式提供
 
@@ -127,7 +129,7 @@ OPENROUTER_API_KEY=...
 2. 导出 DeerFlow 路径、Gateway URL、provider key 占位值。
 3. 在 `DEER_FLOW_MANAGED_CONFIG=true` 时同步 `hfs/config/config.hfs.yaml` 到 `DEER_FLOW_CONFIG_PATH`。
 4. 创建 `extensions_config.json`。
-5. 在未提供 `BETTER_AUTH_SECRET` / `DEER_FLOW_INTERNAL_AUTH_TOKEN` 时生成临时或持久 secret。
+5. 在未提供 `AUTH_JWT_SECRET` / `DEER_FLOW_INTERNAL_AUTH_TOKEN` 时生成临时或持久 secret；旧 `BETTER_AUTH_SECRET` 只作 JWT secret 迁移输入。
 6. 启动 supervisor。
 
 首次访问：
@@ -144,6 +146,8 @@ https://blueskyxn-deerflow-all-in-one-hfs.hf.space/setup
 
 ```bash
 BASE=https://blueskyxn-deerflow-all-in-one-hfs.hf.space
+curl -fsS "$BASE/nginx-health"
+curl -fsS "$BASE/healthz"
 curl -fsS "$BASE/health"
 curl -fsS "$BASE/_ops/healthz"
 curl -fsS "$BASE/_ops/readyz"
@@ -156,6 +160,10 @@ curl -fsS "$BASE/api/v1/auth/setup-status"
 ```bash
 curl -H "Authorization: Bearer $DEER_FLOW_OPS_TOKEN" \
   "$BASE/_ops/status"
+curl -H "X-Ops-Token: $DEER_FLOW_OPS_TOKEN" \
+  "$BASE/_ops/errors"
+curl -H "X-Ops-Token: $DEER_FLOW_OPS_TOKEN" \
+  "$BASE/_ops/version"
 
 # 只有显式启用 DEER_FLOW_ADMIN_ENABLED=true 时才检查 admin API。
 curl -H "Authorization: Bearer $DEER_FLOW_ADMIN_TOKEN" \

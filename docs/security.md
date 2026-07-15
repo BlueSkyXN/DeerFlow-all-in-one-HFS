@@ -53,6 +53,8 @@ Cross-site auth request denied.
 
 Nginx 需要正确传递 `X-Forwarded-Proto` 和 `X-Forwarded-Host`，当前 `hfs/nginx/nginx.conf` 已处理 HF proxy 场景。
 
+Gateway 当前使用 `AUTH_JWT_SECRET` 签名 session。`BETTER_AUTH_SECRET` 不是当前上游运行时契约，仅由 entrypoint 作为旧 HFS secret 的一次兼容来源。Nginx access log 不记录 query string，避免 OAuth code、token 或其他敏感参数进入公开容器日志。
+
 ## Ops routes
 
 公开：
@@ -66,10 +68,19 @@ Nginx 需要正确传递 `X-Forwarded-Proto` 和 `X-Forwarded-Host`，当前 `hf
 
 ```text
 /_ops/status
+/_ops/health
+/_ops/system
+/_ops/persistence
+/_ops/version
+/_ops/metrics
+/_ops/logs
+/_ops/errors
 /_ops/config
 ```
 
-`/_ops/config` 只返回白名单配置和 secret presence，不返回 secret 值。
+`/_ops/config` 只返回白名单配置和 secret presence，不返回 secret 值。`/_ops/logs` 和 `/_ops/errors` 只读取 allowlist 中的日志目标，并会按当前进程已知 secret 值做 redaction；它们仍属于受保护诊断面，不应公开分享输出。
+
+`/_ops/` 浏览器 shell 不把 token 写入 `localStorage`。通过 `Authorization: Bearer` 或 `X-Ops-Token` 成功认证后，服务可签发 path-scoped、`HttpOnly`、`SameSite=Strict` session cookie；query string 不接受 token。
 
 Nginx 对 `/_ops/*` 只允许 `GET`，并把 request body limit 收窄到 `16k`，避免公开诊断面继承上传接口的 100M 限制。
 
@@ -88,6 +99,9 @@ Nginx 对 `/_ops/*` 只允许 `GET`，并把 request body limit 收窄到 `16k`�
 ```text
 /_admin/api/status
 /_admin/api/config
+/_admin/api/actions
+/_admin/api/audit
+/_admin/api/actions/run-health-checks
 /_admin/api/reload-nginx
 /_admin/api/restart
 ```
@@ -105,7 +119,7 @@ DEER_FLOW_ADMIN_ENABLED=false
 DEER_FLOW_ADMIN_ACTIONS_ENABLED=false
 ```
 
-写动作还需要 `X-DeerFlow-Admin-Intent: DeerFlow-HFS-Admin` 和精确的 `X-DeerFlow-Admin-Confirm` header，并会写入 `/data/deer-flow/logs/admin-actions.jsonl` 审计记录。
+写动作还需要 `X-DeerFlow-Admin-Intent: DeerFlow-HFS-Admin` 和精确的 `X-DeerFlow-Admin-Confirm` header，并会写入 `/data/deer-flow/logs/admin-actions.jsonl` 审计记录。审计读取限制为最近 1 MiB，并再次执行 secret redaction。`run-health-checks` 是只读 action，不受 `DEER_FLOW_ADMIN_ACTIONS_ENABLED` 控制，但仍要求 admin token、intent 和 confirm header，并记录精简审计事件。
 
 Nginx 对 `/_admin/*` 只允许 `GET` / `POST`，并把 request body limit 收窄到 `64k`。公开 HTML shell 不持久化 admin token 到 browser storage。
 
@@ -138,7 +152,7 @@ nginx
 ```bash
 OPENAI_API_KEY
 OPENROUTER_API_KEY
-BETTER_AUTH_SECRET
+AUTH_JWT_SECRET
 DEER_FLOW_INTERNAL_AUTH_TOKEN
 DEER_FLOW_OPS_TOKEN
 DEER_FLOW_ADMIN_TOKEN
@@ -177,5 +191,5 @@ INFOQUEST_API_KEY
 - `GATEWAY_CORS_ORIGINS` 只包含可信 origin。
 - 管理员密码足够强。
 - 模型 provider key 有预算上限。
-- `BETTER_AUTH_SECRET` 和 `DEER_FLOW_INTERNAL_AUTH_TOKEN` 是稳定 secret。
+- `AUTH_JWT_SECRET` 和 `DEER_FLOW_INTERNAL_AUTH_TOKEN` 是稳定 secret。
 - `/data` 已持久化或明确接受重启丢状态。
