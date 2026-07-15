@@ -27,6 +27,7 @@ hf spaces logs BlueSkyXN/DeerFlow-all-in-one-HFS --build -n 300
 - Frontend HTTP。
 - Ops port。
 - entrypoint 在 `DEER_FLOW_HOME` 写入的 persistence probe 存在。
+- `DEER_FLOW_DB_DIR` 和 `deerflow.db` 存在。
 - `DEER_FLOW_CONFIG_PATH` 存在。
 - `DEER_FLOW_EXTENSIONS_CONFIG_PATH` 存在。
 
@@ -42,6 +43,10 @@ hf spaces logs BlueSkyXN/DeerFlow-all-in-one-HFS --build -n 300
 ```bash
 curl -H "Authorization: Bearer $DEER_FLOW_OPS_TOKEN" \
   https://blueskyxn-deerflow-all-in-one-hfs.hf.space/_ops/status
+curl -H "X-Ops-Token: $DEER_FLOW_OPS_TOKEN" \
+  https://blueskyxn-deerflow-all-in-one-hfs.hf.space/_ops/errors
+curl -H "X-Ops-Token: $DEER_FLOW_OPS_TOKEN" \
+  https://blueskyxn-deerflow-all-in-one-hfs.hf.space/_ops/version
 ```
 
 ## `/setup` 一直 Loading
@@ -98,6 +103,8 @@ DEER_FLOW_MANAGED_CONFIG=true
 
 让 HFS 模板重新接管 runtime config。
 
+如果 Gateway 能启动但账号或 thread 数据在 rebuild 后消失，检查 `/_ops/persistence` 中数据库是否位于 `/data/deer-flow/data/deerflow.db`，再用 `hf spaces volumes list` 确认 Space 是否真的挂载了 Storage。代码写入 `/data` 不能替代 Storage 配置。
+
 ## UI loads but chat fails
 
 检查：
@@ -125,6 +132,8 @@ https://gateway.ai.cloudflare.com/v1/98e18e2c295c6564954400ea5502d9f2/open/custo
 
 ```text
 /health
+/nginx-health
+/healthz
 /openapi.json
 /api/v1/auth/setup-status
 /_ops/healthz
@@ -184,6 +193,8 @@ DEER_FLOW_ADMIN_TOKEN=<secret>
 ```bash
 DEER_FLOW_ADMIN_ACTIONS_ENABLED=true
 ```
+
+只读 `/_admin/api/actions/run-health-checks` 不需要打开写动作开关，但仍需要 admin token、`X-DeerFlow-Admin-Intent: DeerFlow-HFS-Admin` 和 `X-DeerFlow-Admin-Confirm: run-health-checks`。
 
 默认应该保持 false。
 

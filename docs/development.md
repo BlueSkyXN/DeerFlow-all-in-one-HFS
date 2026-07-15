@@ -16,13 +16,13 @@ cp examples/local.env.example .env.local
 
 ```bash
 OPENAI_API_KEY=<cloudflare-ai-gateway-bearer-token>
-BETTER_AUTH_SECRET=<local-secret>
+AUTH_JWT_SECRET=<local-secret>
 DEER_FLOW_INTERNAL_AUTH_TOKEN=<local-token>
 DEER_FLOW_OPS_TOKEN=<local-ops-token>
 DEER_FLOW_ADMIN_TOKEN=<local-admin-token>
 ```
 
-本地默认 `GATEWAY_CORS_ORIGINS=http://localhost:7860`。
+本地默认 `GATEWAY_CORS_ORIGINS=http://localhost:7860`，`DEER_FLOW_TRUSTED_ORIGINS` 使用相同 origin。
 
 ## 构建
 
@@ -34,7 +34,7 @@ make build
 
 ```bash
 docker build \
-  --build-arg DEERFLOW_REF=main \
+  --build-arg DEERFLOW_REF=45865e9f3f5ac1cd05bfce9406b30ea8da864c52 \
   -t deerflow-all-in-one-hfs .
 ```
 
@@ -79,14 +79,16 @@ make smoke
 脚本来源：`scripts/smoke-test.sh`。检查项：
 
 - `/health` -> 200
+- `/nginx-health` -> 200
+- `/healthz` -> 200
 - `/openapi.json` -> 200
 - `/api/v1/auth/setup-status` -> 200
 - `/api/sandboxes` -> 404
 - `/_ops/healthz` -> 200
 - `/_ops/readyz` -> 200
 - `/_admin/` -> 200
-- `/_ops/status` -> 200，仅当 shell 中存在 `DEER_FLOW_OPS_TOKEN` 或 `OPS_TOKEN`
-- `/_admin/api/status` -> 200，仅当 shell 中存在 `DEER_FLOW_ADMIN_TOKEN` / `ADMIN_TOKEN` 且 `DEER_FLOW_ADMIN_ENABLED=true`
+- `/_ops/status`、`/_ops/health`、`/_ops/system`、`/_ops/persistence`、`/_ops/version`、`/_ops/metrics`、`/_ops/errors` -> 200，仅当 shell 中存在 `DEER_FLOW_OPS_TOKEN` 或 `OPS_TOKEN`
+- `/_admin/api/status`、`/_admin/api/actions`、`/_admin/api/audit`、`/_admin/api/actions/run-health-checks` -> 200，仅当 shell 中存在 `DEER_FLOW_ADMIN_TOKEN` / `ADMIN_TOKEN` 且 `DEER_FLOW_ADMIN_ENABLED=true`
 
 ## Static check
 
@@ -97,9 +99,10 @@ make static-check
 该检查不需要 Docker 或 secrets，用于 PR 前快速验证：
 
 - shell / Python 语法。
+- ops/admin dependency-free service contract integration checks。
 - Pattern A root layout 没有误迁到 `cloud/hfs/`。
 - `README.md` metadata、`Dockerfile EXPOSE`、Nginx listen、healthcheck、smoke 端口一致。
-- `hfs/` 内部路径、admin API/write actions 默认关闭、`DEERFLOW_REF` v2 structured release pin 存在。
+- `hfs/` 内部路径、admin API/write actions 默认关闭、SHA pin、config v26、SQLite/JWT/persistence contract 一致。
 
 ## Shell
 
@@ -113,6 +116,7 @@ make shell
 /home/user/app/deer-flow
 /home/user/app/hfs
 /data/deer-flow
+/data/deer-flow/data/deerflow.db
 ```
 
 ## 本地持久化数据

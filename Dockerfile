@@ -6,7 +6,7 @@ FROM ${UV_IMAGE} AS uv-source
 FROM python:3.12-slim-bookworm
 
 ARG DEERFLOW_REPO=https://github.com/bytedance/deer-flow.git
-ARG DEERFLOW_REF=main
+ARG DEERFLOW_REF=45865e9f3f5ac1cd05bfce9406b30ea8da864c52
 ARG NODE_MAJOR=22
 ARG PNPM_VERSION=10.26.2
 ARG APT_MIRROR=
@@ -22,12 +22,19 @@ ENV LANG=C.UTF-8 \
     PATH=/home/user/.local/share/pnpm:/home/user/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin \
     DEER_FLOW_PROJECT_ROOT=/home/user/app/deer-flow \
     DEER_FLOW_HOME=/data/deer-flow \
+    DEER_FLOW_DB_DIR=/data/deer-flow/data \
     DEER_FLOW_CONFIG_PATH=/data/deer-flow/config.yaml \
     DEER_FLOW_EXTENSIONS_CONFIG_PATH=/data/deer-flow/extensions_config.json \
     DEER_FLOW_SKILLS_PATH=/home/user/app/deer-flow/skills \
     GATEWAY_WORKERS=1 \
     GATEWAY_ENABLE_DOCS=true \
     DEER_FLOW_OPS_PORT=8081 \
+    DEER_FLOW_OPS_SESSION_TTL_SECONDS=3600 \
+    DEER_FLOW_OPS_COOKIE_SECURE=auto \
+    DEER_FLOW_OPS_DEFAULT_CHECKS_ENABLED=true \
+    DEER_FLOW_OPS_LOG_DIR=/data/deer-flow/logs \
+    DEER_FLOW_OPS_LOG_LINES_MAX=1000 \
+    DEER_FLOW_OPS_LOG_TAIL_MAX_BYTES=1048576 \
     DEER_FLOW_ADMIN_PORT=8082 \
     DEER_FLOW_ADMIN_ENABLED=false \
     DEER_FLOW_ADMIN_ACTIONS_ENABLED=false \
@@ -87,10 +94,14 @@ USER 1000
 WORKDIR /home/user/app
 
 RUN set -eux; \
-    git clone --depth 1 --branch "${DEERFLOW_REF}" "${DEERFLOW_REPO}" deer-flow \
-    || (git clone "${DEERFLOW_REPO}" deer-flow && cd deer-flow && git checkout "${DEERFLOW_REF}"); \
+    git init deer-flow; \
     cd deer-flow; \
-    git rev-parse HEAD > /home/user/app/deer-flow/.deerflow-upstream-sha
+    git remote add origin "${DEERFLOW_REPO}"; \
+    git fetch --depth 1 origin "${DEERFLOW_REF}"; \
+    git checkout --detach FETCH_HEAD; \
+    git rev-parse HEAD > .deerflow-upstream-sha; \
+    printf '%s\n' "${DEERFLOW_REF}" > .deerflow-upstream-ref; \
+    python -c 'import pathlib, tomllib; root = pathlib.Path("."); data = tomllib.loads((root / "backend/pyproject.toml").read_text(encoding="utf-8")); (root / ".deerflow-upstream-version").write_text(str(data["project"]["version"]) + "\n", encoding="utf-8")'
 
 RUN --mount=type=cache,target=/home/user/.cache/uv,uid=1000,gid=1000 \
     set -eux; \

@@ -3,8 +3,14 @@
 # $DEER_FLOW_CONFIG_PATH on every startup.
 # Set DEER_FLOW_MANAGED_CONFIG=false before relying on runtime edits under /data.
 
-config_version: 10
+config_version: 26
 log_level: info
+
+# Keep the unified DeerFlow SQLite database under the resolved HFS runtime
+# home instead of the non-persistent source checkout.
+database:
+  backend: sqlite
+  sqlite_dir: $DEER_FLOW_DB_DIR
 
 token_usage:
   enabled: true

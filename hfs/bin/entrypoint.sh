@@ -26,15 +26,44 @@ fi
 
 export HOME="${HOME:-/home/user}"
 export DEER_FLOW_PROJECT_ROOT="${DEER_FLOW_PROJECT_ROOT:-/home/user/app/deer-flow}"
+export DEER_FLOW_DB_DIR="${DEER_FLOW_DB_DIR:-${DEER_FLOW_HOME}/data}"
 export DEER_FLOW_CONFIG_PATH="${DEER_FLOW_CONFIG_PATH:-${DEER_FLOW_HOME}/config.yaml}"
 export DEER_FLOW_EXTENSIONS_CONFIG_PATH="${DEER_FLOW_EXTENSIONS_CONFIG_PATH:-${DEER_FLOW_HOME}/extensions_config.json}"
+if [ "${DEER_FLOW_HOME}" != "/data/deer-flow" ]; then
+  if [ "${DEER_FLOW_DB_DIR}" = "/data/deer-flow/data" ]; then
+    export DEER_FLOW_DB_DIR="${DEER_FLOW_HOME}/data"
+  fi
+  if [ "${DEER_FLOW_CONFIG_PATH}" = "/data/deer-flow/config.yaml" ]; then
+    export DEER_FLOW_CONFIG_PATH="${DEER_FLOW_HOME}/config.yaml"
+  fi
+  if [ "${DEER_FLOW_EXTENSIONS_CONFIG_PATH}" = "/data/deer-flow/extensions_config.json" ]; then
+    export DEER_FLOW_EXTENSIONS_CONFIG_PATH="${DEER_FLOW_HOME}/extensions_config.json"
+  fi
+fi
 export DEER_FLOW_SKILLS_PATH="${DEER_FLOW_SKILLS_PATH:-${DEER_FLOW_PROJECT_ROOT}/skills}"
 export DEER_FLOW_MANAGED_CONFIG="${DEER_FLOW_MANAGED_CONFIG:-true}"
 export GATEWAY_WORKERS="${GATEWAY_WORKERS:-1}"
 export GATEWAY_ENABLE_DOCS="${GATEWAY_ENABLE_DOCS:-true}"
+export DEER_FLOW_OPS_PORT="${DEER_FLOW_OPS_PORT:-8081}"
+export DEER_FLOW_OPS_SESSION_TTL_SECONDS="${DEER_FLOW_OPS_SESSION_TTL_SECONDS:-3600}"
+export DEER_FLOW_OPS_COOKIE_SECURE="${DEER_FLOW_OPS_COOKIE_SECURE:-auto}"
+export DEER_FLOW_OPS_DEFAULT_CHECKS_ENABLED="${DEER_FLOW_OPS_DEFAULT_CHECKS_ENABLED:-true}"
+export DEER_FLOW_OPS_LOG_DIR="${DEER_FLOW_OPS_LOG_DIR:-${DEER_FLOW_HOME}/logs}"
+if [ "${DEER_FLOW_OPS_LOG_DIR}" = "/data/deer-flow/logs" ] && [ "${DEER_FLOW_HOME}" != "/data/deer-flow" ]; then
+  export DEER_FLOW_OPS_LOG_DIR="${DEER_FLOW_HOME}/logs"
+fi
+export DEER_FLOW_OPS_LOG_LINES_MAX="${DEER_FLOW_OPS_LOG_LINES_MAX:-1000}"
+export DEER_FLOW_OPS_LOG_TAIL_MAX_BYTES="${DEER_FLOW_OPS_LOG_TAIL_MAX_BYTES:-1048576}"
+export DEER_FLOW_ADMIN_PORT="${DEER_FLOW_ADMIN_PORT:-8082}"
+export DEER_FLOW_ADMIN_ENABLED="${DEER_FLOW_ADMIN_ENABLED:-false}"
+export DEER_FLOW_ADMIN_ACTIONS_ENABLED="${DEER_FLOW_ADMIN_ACTIONS_ENABLED:-false}"
 export DEER_FLOW_CHANNELS_LANGGRAPH_URL="${DEER_FLOW_CHANNELS_LANGGRAPH_URL:-http://127.0.0.1:8001/api}"
 export DEER_FLOW_CHANNELS_GATEWAY_URL="${DEER_FLOW_CHANNELS_GATEWAY_URL:-http://127.0.0.1:8001}"
 export DEER_FLOW_INTERNAL_GATEWAY_BASE_URL="${DEER_FLOW_INTERNAL_GATEWAY_BASE_URL:-http://127.0.0.1:8001}"
+if [ -z "${GATEWAY_CORS_ORIGINS:-}" ] && [ -n "${SPACE_HOST:-}" ]; then
+  export GATEWAY_CORS_ORIGINS="https://${SPACE_HOST}"
+fi
+export DEER_FLOW_TRUSTED_ORIGINS="${DEER_FLOW_TRUSTED_ORIGINS:-${GATEWAY_CORS_ORIGINS:-http://localhost:7860}}"
 export OPENROUTER_API_KEY="${OPENROUTER_API_KEY:-}"
 export OPENAI_API_KEY="${OPENAI_API_KEY:-}"
 export TAVILY_API_KEY="${TAVILY_API_KEY:-}"
@@ -46,6 +75,8 @@ export INFOQUEST_API_KEY="${INFOQUEST_API_KEY:-}"
 
 mkdir -p \
   "${DEER_FLOW_HOME}/logs" \
+  "${DEER_FLOW_DB_DIR}" \
+  "${DEER_FLOW_OPS_LOG_DIR}" \
   "${DEER_FLOW_HOME}/run" \
   "${DEER_FLOW_HOME}/threads" \
   "${DEER_FLOW_HOME}/uploads" \
@@ -74,17 +105,24 @@ if ! printf 'ok\n' > "${DEER_FLOW_HOME}/.hfs-persistence-probe" 2>/dev/null; the
 fi
 
 # Generate stable secrets if the user did not provide them through HF Secrets.
-# They remain stable only if DEER_FLOW_HOME is persistent.
-if [ -z "${BETTER_AUTH_SECRET:-}" ]; then
-  secret_file="${DEER_FLOW_HOME}/.better-auth-secret"
+# They remain stable only if DEER_FLOW_HOME persists. BETTER_AUTH_SECRET is a
+# legacy wrapper input; current DeerFlow signs Gateway sessions with AUTH_JWT_SECRET.
+if [ -z "${AUTH_JWT_SECRET:-}" ] && [ -n "${BETTER_AUTH_SECRET:-}" ]; then
+  AUTH_JWT_SECRET="${BETTER_AUTH_SECRET}"
+  export AUTH_JWT_SECRET
+  log "Using legacy BETTER_AUTH_SECRET as the AUTH_JWT_SECRET compatibility source."
+fi
+
+if [ -z "${AUTH_JWT_SECRET:-}" ]; then
+  secret_file="${DEER_FLOW_HOME}/.jwt_secret"
   if [ -f "${secret_file}" ]; then
-    BETTER_AUTH_SECRET="$(cat "${secret_file}")"
-    export BETTER_AUTH_SECRET
+    AUTH_JWT_SECRET="$(cat "${secret_file}")"
+    export AUTH_JWT_SECRET
   else
-    BETTER_AUTH_SECRET="$(make_secret)"
-    export BETTER_AUTH_SECRET
+    AUTH_JWT_SECRET="$(make_secret)"
+    export AUTH_JWT_SECRET
     umask 077
-    printf '%s' "${BETTER_AUTH_SECRET}" > "${secret_file}"
+    printf '%s' "${AUTH_JWT_SECRET}" > "${secret_file}"
     umask 022
   fi
 fi

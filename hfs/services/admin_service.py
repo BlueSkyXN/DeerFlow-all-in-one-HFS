@@ -6,19 +6,29 @@ from __future__ import annotations
 import hmac
 import json
 import os
+import re
 import subprocess
 import time
+import urllib.parse
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 
 STARTED_AT = time.time()
-ADMIN_PORT = int(os.environ.get("DEER_FLOW_ADMIN_PORT") or os.environ.get("ADMIN_PORT", "8082"))
-SUPERVISOR_CONFIG = os.environ.get("DEER_FLOW_SUPERVISOR_CONFIG", "/home/user/app/hfs/supervisor/supervisord.conf")
-NGINX_CONFIG = os.environ.get("DEER_FLOW_NGINX_CONFIG", "/home/user/app/hfs/nginx/nginx.conf")
+ADMIN_PORT = int(
+    os.environ.get("DEER_FLOW_ADMIN_PORT") or os.environ.get("ADMIN_PORT", "8082")
+)
+SUPERVISOR_CONFIG = os.environ.get(
+    "DEER_FLOW_SUPERVISOR_CONFIG", "/home/user/app/hfs/supervisor/supervisord.conf"
+)
+NGINX_CONFIG = os.environ.get(
+    "DEER_FLOW_NGINX_CONFIG", "/home/user/app/hfs/nginx/nginx.conf"
+)
 NGINX_BIN = os.environ.get("DEER_FLOW_NGINX_BIN", "/usr/sbin/nginx")
 ALLOWED_RESTART_SERVICES = {"gateway", "frontend", "nginx"}
 ADMIN_INTENT_HEADER = "DeerFlow-HFS-Admin"
+MAX_AUDIT_EVENTS = 500
+MAX_AUDIT_BYTES = 1_048_576
 
 SAFE_CONFIG_KEYS = [
     "DEER_FLOW_ENV",
@@ -33,6 +43,7 @@ SAFE_CONFIG_KEYS = [
 ]
 
 SECRET_KEYS = [
+    "AUTH_JWT_SECRET",
     "BETTER_AUTH_SECRET",
     "DEER_FLOW_INTERNAL_AUTH_TOKEN",
     "DEER_FLOW_ADMIN_TOKEN",
@@ -42,6 +53,10 @@ SECRET_KEYS = [
     "OPENROUTER_API_KEY",
     "OPENAI_API_KEY",
 ]
+
+SECRET_NAME_PATTERN = re.compile(
+    r"(?i)(authorization|api[_-]?key|secret|token|password)"
+)
 
 
 def env(name: str, default: str = "") -> str:
@@ -54,12 +69,31 @@ def parse_bool(value: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def parse_int(
+    value: Any, default: int, minimum: int | None = None, maximum: int | None = None
+) -> int:
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        parsed = default
+    if minimum is not None:
+        parsed = max(parsed, minimum)
+    if maximum is not None:
+        parsed = min(parsed, maximum)
+    return parsed
+
+
 def admin_enabled() -> bool:
-    return parse_bool(env("DEER_FLOW_ADMIN_ENABLED") or env("ADMIN_ENABLED"), default=False)
+    return parse_bool(
+        env("DEER_FLOW_ADMIN_ENABLED") or env("ADMIN_ENABLED"), default=False
+    )
 
 
 def admin_actions_enabled() -> bool:
-    return parse_bool(env("DEER_FLOW_ADMIN_ACTIONS_ENABLED") or env("ADMIN_ACTIONS_ENABLED"), default=False)
+    return parse_bool(
+        env("DEER_FLOW_ADMIN_ACTIONS_ENABLED") or env("ADMIN_ACTIONS_ENABLED"),
+        default=False,
+    )
 
 
 def admin_token() -> str:
@@ -82,7 +116,9 @@ def authorized(handler: BaseHTTPRequestHandler) -> bool:
 
 def run_fixed(command: list[str], timeout: int = 15) -> dict[str, Any]:
     try:
-        result = subprocess.run(command, capture_output=True, text=True, timeout=timeout, check=False)
+        result = subprocess.run(
+            command, capture_output=True, text=True, timeout=timeout, check=False
+        )
         return {
             "returncode": result.returncode,
             "stdout": result.stdout.strip()[-4000:],
@@ -99,7 +135,13 @@ def supervisor_status() -> dict[str, Any]:
     for line in result.get("stdout", "").splitlines():
         parts = line.split(None, 2)
         if len(parts) >= 2:
-            processes.append({"name": parts[0], "state": parts[1], "detail": parts[2] if len(parts) > 2 else ""})
+            processes.append(
+                {
+                    "name": parts[0],
+                    "state": parts[1],
+                    "detail": parts[2] if len(parts) > 2 else "",
+                }
+            )
     result["processes"] = processes
     return result
 
@@ -111,7 +153,9 @@ def status_payload() -> dict[str, Any]:
         "actions_enabled": admin_actions_enabled(),
         "token_configured": bool(admin_token()),
         "uptime_seconds": round(time.time() - STARTED_AT, 1),
-        "supervisor": supervisor_status() if admin_enabled() and admin_token() else {"processes": []},
+        "supervisor": supervisor_status()
+        if admin_enabled() and admin_token()
+        else {"processes": []},
     }
 
 
@@ -122,8 +166,118 @@ def config_payload() -> dict[str, Any]:
     }
 
 
+def redact_text(text: str) -> str:
+    redacted = text
+    for key in SECRET_KEYS:
+        value = env(key)
+        if len(value) >= 4:
+            redacted = redacted.replace(value, f"[redacted:{key}]")
+    redacted = re.sub(r"(?i)(\bbearer\s+)[^\s,;\"']+", r"\1[redacted]", redacted)
+    redacted = re.sub(
+        r"(?i)((?:[\"']?(?:authorization|api[_-]?key|secret|token|password)[\"']?)\s*[:=]\s*[\"']?)([^\s,;&\"']+)",
+        r"\1[redacted]",
+        redacted,
+    )
+    return redacted
+
+
+def redact_payload(value: Any, key: str = "") -> Any:
+    if key and SECRET_NAME_PATTERN.search(key):
+        return "[redacted]"
+    if isinstance(value, str):
+        return redact_text(value)
+    if isinstance(value, dict):
+        return {
+            item_key: redact_payload(item_value, str(item_key))
+            for item_key, item_value in value.items()
+        }
+    if isinstance(value, list):
+        return [redact_payload(item) for item in value]
+    return value
+
+
+def actions_payload() -> dict[str, Any]:
+    return {
+        "status": "ok",
+        "actions_enabled": admin_actions_enabled(),
+        "read_only_actions": [
+            {
+                "name": "run-health-checks",
+                "path": "/_admin/api/actions/run-health-checks",
+                "method": "POST",
+                "confirm": "run-health-checks",
+            }
+        ],
+        "write_actions": [
+            {
+                "name": "reload-nginx",
+                "path": "/_admin/api/reload-nginx",
+                "method": "POST",
+                "confirm": "reload-nginx",
+                "enabled": admin_actions_enabled(),
+            },
+            {
+                "name": "restart",
+                "path": "/_admin/api/restart",
+                "method": "POST",
+                "confirm_pattern": "restart:<service>",
+                "allowed_services": sorted(ALLOWED_RESTART_SERVICES),
+                "enabled": admin_actions_enabled(),
+            },
+        ],
+    }
+
+
+def audit_log_path() -> Path:
+    return (
+        Path(env("DEER_FLOW_HOME", "/data/deer-flow")) / "logs" / "admin-actions.jsonl"
+    )
+
+
+def audit_payload(query: dict[str, list[str]]) -> dict[str, Any]:
+    limit = parse_int(
+        query.get("limit", ["100"])[0], 100, minimum=1, maximum=MAX_AUDIT_EVENTS
+    )
+    path = audit_log_path()
+    if not path.exists():
+        return {"status": "ok", "path": str(path), "events": []}
+    events: list[Any] = []
+    try:
+        size = path.stat().st_size
+        with path.open("rb") as handle:
+            handle.seek(max(size - MAX_AUDIT_BYTES, 0))
+            raw = handle.read()
+        lines = raw.decode("utf-8", errors="replace").splitlines()[-limit:]
+    except OSError as exc:
+        return {"status": "error", "error": str(exc), "events": []}
+    for line in lines:
+        try:
+            events.append(redact_payload(json.loads(line)))
+        except json.JSONDecodeError:
+            events.append({"raw": redact_text(line[:1000])})
+    return {
+        "status": "ok",
+        "path": str(path),
+        "limit": limit,
+        "tail_max_bytes": MAX_AUDIT_BYTES,
+        "events": events,
+    }
+
+
+def health_checks_payload() -> dict[str, Any]:
+    nginx_config = run_fixed([NGINX_BIN, "-t", "-c", NGINX_CONFIG], timeout=10)
+    supervisor = supervisor_status()
+    return {
+        "status": "ok"
+        if nginx_config.get("ok") and supervisor.get("ok")
+        else "degraded",
+        "nginx_config": nginx_config,
+        "supervisor": supervisor,
+    }
+
+
 def audit_event(action: str, payload: dict[str, Any]) -> None:
-    root = Path(env("DEER_FLOW_HOME", "/data/deer-flow")) / "logs"
+    root = audit_log_path().parent
     try:
         root.mkdir(parents=True, exist_ok=True)
         event = {
@@ -131,7 +285,7 @@ def audit_event(action: str, payload: dict[str, Any]) -> None:
             "action": action,
             "payload": payload,
         }
-        with (root / "admin-actions.jsonl").open("a", encoding="utf-8") as handle:
+        with audit_log_path().open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")
     except OSError:
         return
@@ -166,7 +320,7 @@ ADMIN_HTML = r"""<!doctype html>
   </section>
   <section class="card">
     <h2>Status</h2>
-    <div class="row"><button onclick="loadStatus()">Refresh status</button><button class="secondary" onclick="loadConfig()">Config presence</button></div>
+    <div class="row"><button onclick="loadStatus()">Refresh status</button><button class="secondary" onclick="loadConfig()">Config presence</button><button class="secondary" onclick="loadActions()">Actions</button><button class="secondary" onclick="loadAudit()">Audit</button><button onclick="runHealthChecks()">Run health checks</button></div>
     <pre id="output">No request yet.</pre>
   </section>
 </main>
@@ -183,6 +337,9 @@ async function api(path, options={}){
 }
 function loadStatus(){ api('/_admin/api/status'); }
 function loadConfig(){ api('/_admin/api/config'); }
+function loadActions(){ api('/_admin/api/actions'); }
+function loadAudit(){ api('/_admin/api/audit?limit=20'); }
+function runHealthChecks(){ api('/_admin/api/actions/run-health-checks', {method: 'POST', headers: {'X-DeerFlow-Admin-Confirm': 'run-health-checks'}}); }
 </script>
 </body>
 </html>
@@ -203,7 +360,9 @@ class AdminHandler(BaseHTTPRequestHandler):
         self.send_header("X-Content-Type-Options", "nosniff")
         self.send_header("Referrer-Policy", "no-referrer")
         self.send_header("X-Frame-Options", "DENY")
-        self.send_header("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
+        self.send_header(
+            "Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'"
+        )
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
         self.wfile.write(body)
@@ -225,7 +384,10 @@ class AdminHandler(BaseHTTPRequestHandler):
         self.wfile.write(body)
 
     def read_json(self) -> dict[str, Any]:
-        length = int(self.headers.get("Content-Length", "0") or "0")
+        try:
+            length = int(self.headers.get("Content-Length", "0") or "0")
+        except ValueError:
+            return {}
         if length <= 0:
             return {}
         raw = self.rfile.read(min(length, 65536))
@@ -239,9 +401,21 @@ class AdminHandler(BaseHTTPRequestHandler):
         if authorized(self):
             return True
         if not admin_enabled():
-            self.send_json({"error": "admin_disabled", "message": "Set DEER_FLOW_ADMIN_ENABLED=true and DEER_FLOW_ADMIN_TOKEN to enable admin APIs."}, 403)
+            self.send_json(
+                {
+                    "error": "admin_disabled",
+                    "message": "Set DEER_FLOW_ADMIN_ENABLED=true and DEER_FLOW_ADMIN_TOKEN to enable admin APIs.",
+                },
+                403,
+            )
         elif not admin_token():
-            self.send_json({"error": "admin_locked", "message": "DEER_FLOW_ADMIN_TOKEN is not configured."}, 403)
+            self.send_json(
+                {
+                    "error": "admin_locked",
+                    "message": "DEER_FLOW_ADMIN_TOKEN is not configured.",
+                },
+                403,
+            )
         else:
             self.send_json({"error": "unauthorized"}, 401)
         return False
@@ -249,20 +423,36 @@ class AdminHandler(BaseHTTPRequestHandler):
     def require_actions(self) -> bool:
         if admin_actions_enabled():
             return True
-        self.send_json({"error": "actions_disabled", "message": "Set DEER_FLOW_ADMIN_ACTIONS_ENABLED=true to allow fixed write actions."}, 403)
+        self.send_json(
+            {
+                "error": "actions_disabled",
+                "message": "Set DEER_FLOW_ADMIN_ACTIONS_ENABLED=true to allow fixed write actions.",
+            },
+            403,
+        )
         return False
 
     def require_post_guard(self, confirmation: str) -> bool:
         if self.headers.get("X-DeerFlow-Admin-Intent") != ADMIN_INTENT_HEADER:
-            self.send_json({"error": "csrf_guard_required", "message": "Missing admin intent header."}, 403)
+            self.send_json(
+                {
+                    "error": "csrf_guard_required",
+                    "message": "Missing admin intent header.",
+                },
+                403,
+            )
             return False
         if self.headers.get("X-DeerFlow-Admin-Confirm") != confirmation:
-            self.send_json({"error": "confirmation_required", "expected": confirmation}, 409)
+            self.send_json(
+                {"error": "confirmation_required", "expected": confirmation}, 409
+            )
             return False
         return True
 
     def do_GET(self) -> None:
-        path = self.path.split("?", 1)[0].rstrip("/") or "/"
+        parsed = urllib.parse.urlparse(self.path)
+        path = parsed.path.rstrip("/") or "/"
+        query = urllib.parse.parse_qs(parsed.query)
         if path == "/":
             self.send_html(ADMIN_HTML)
             return
@@ -276,33 +466,102 @@ class AdminHandler(BaseHTTPRequestHandler):
                 return
             self.send_json(config_payload())
             return
+        if path == "/api/actions":
+            if not self.require_admin():
+                return
+            self.send_json(actions_payload())
+            return
+        if path == "/api/audit":
+            if not self.require_admin():
+                return
+            data = audit_payload(query)
+            self.send_json(data, 200 if data["status"] == "ok" else 500)
+            return
         self.send_json({"error": "not found"}, 404)
 
     def do_POST(self) -> None:
         path = self.path.split("?", 1)[0].rstrip("/") or "/"
-        if not self.require_admin() or not self.require_actions():
+        if not self.require_admin():
+            return
+        if path == "/api/actions/run-health-checks":
+            if not self.require_post_guard("run-health-checks"):
+                return
+            data = health_checks_payload()
+            audit_event(
+                "run-health-checks",
+                {
+                    "status": data["status"],
+                    "nginx_ok": bool(data["nginx_config"].get("ok")),
+                    "supervisor_ok": bool(data["supervisor"].get("ok")),
+                },
+            )
+            self.send_json(data, 200 if data["status"] == "ok" else 503)
+            return
+        if not self.require_actions():
             return
         if path == "/api/reload-nginx":
             if not self.require_post_guard("reload-nginx"):
                 return
             test_result = run_fixed([NGINX_BIN, "-t", "-c", NGINX_CONFIG], timeout=10)
             if not test_result.get("ok"):
-                self.send_json({"action": "reload-nginx", "ok": False, "test": test_result}, 500)
+                self.send_json(
+                    {"action": "reload-nginx", "ok": False, "test": test_result}, 500
+                )
                 return
-            reload_result = run_fixed([NGINX_BIN, "-s", "reload", "-c", NGINX_CONFIG], timeout=10)
-            audit_event("reload-nginx", {"ok": bool(reload_result.get("ok")), "returncode": reload_result.get("returncode")})
-            self.send_json({"action": "reload-nginx", "ok": bool(reload_result.get("ok")), "test": test_result, "reload": reload_result}, 200 if reload_result.get("ok") else 500)
+            reload_result = run_fixed(
+                [NGINX_BIN, "-s", "reload", "-c", NGINX_CONFIG], timeout=10
+            )
+            audit_event(
+                "reload-nginx",
+                {
+                    "ok": bool(reload_result.get("ok")),
+                    "returncode": reload_result.get("returncode"),
+                },
+            )
+            self.send_json(
+                {
+                    "action": "reload-nginx",
+                    "ok": bool(reload_result.get("ok")),
+                    "test": test_result,
+                    "reload": reload_result,
+                },
+                200 if reload_result.get("ok") else 500,
+            )
             return
         if path == "/api/restart":
             service = str(self.read_json().get("service", ""))
             if service not in ALLOWED_RESTART_SERVICES:
-                self.send_json({"error": "invalid_service", "allowed": sorted(ALLOWED_RESTART_SERVICES)}, 400)
+                self.send_json(
+                    {
+                        "error": "invalid_service",
+                        "allowed": sorted(ALLOWED_RESTART_SERVICES),
+                    },
+                    400,
+                )
                 return
             if not self.require_post_guard(f"restart:{service}"):
                 return
-            result = run_fixed(["supervisorctl", "-c", SUPERVISOR_CONFIG, "restart", service], timeout=20)
-            audit_event("restart", {"service": service, "ok": bool(result.get("ok")), "returncode": result.get("returncode")})
-            self.send_json({"action": "restart", "service": service, "ok": bool(result.get("ok")), "result": result}, 200 if result.get("ok") else 500)
+            result = run_fixed(
+                ["supervisorctl", "-c", SUPERVISOR_CONFIG, "restart", service],
+                timeout=20,
+            )
+            audit_event(
+                "restart",
+                {
+                    "service": service,
+                    "ok": bool(result.get("ok")),
+                    "returncode": result.get("returncode"),
+                },
+            )
+            self.send_json(
+                {
+                    "action": "restart",
+                    "service": service,
+                    "ok": bool(result.get("ok")),
+                    "result": result,
+                },
+                200 if result.get("ok") else 500,
+            )
             return
         self.send_json({"error": "not found"}, 404)
 
