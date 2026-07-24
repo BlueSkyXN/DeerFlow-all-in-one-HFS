@@ -35,7 +35,7 @@ runtime 获取模式是 `source-fetch`：Docker build 阶段通过 `DEERFLOW_REP
 - Hugging Face Docker Space 单容器运行，公网只暴露 `7860`。
 - Nginx 统一代理 DeerFlow frontend、Gateway、ops 和 admin。
 - Docker build 阶段从 `bytedance/deer-flow` shallow-fetch 已验证的精确 commit，并记录上游 SHA/ref/version 供 live readback。
-- 前端使用 `next build --webpack` 构建，runtime 使用 `pnpm start`，不再使用 Next dev server。
+- 前端先独立运行 `pnpm typecheck`，再用低峰值内存的 `next build --webpack` 生成产物；runtime 使用 `pnpm start`，不再使用 Next dev server。
 - Gateway 使用 `uvicorn app.gateway.app:app --host 127.0.0.1 --port 8001`。
 - 默认模型为 Cloudflare AI Gateway OpenAI-compatible endpoint 上的 `longcat-flash-thinking-2601`。
 - `DEER_FLOW_MANAGED_CONFIG=true` 时，启动时会用 `hfs/config/config.hfs.yaml` 覆盖运行态 `/data/deer-flow/config.yaml`，避免旧持久化配置继续生效。

@@ -48,6 +48,7 @@ required_paths = [
     "hfs/bin/healthcheck.sh",
     "hfs/config/config.hfs.yaml",
     "hfs/config/extensions_config.json",
+    "hfs/config/next.hfs.config.js",
     "hfs/nginx/nginx.conf",
     "hfs/supervisor/supervisord.conf",
     "hfs/services/ops_service.py",
@@ -97,6 +98,7 @@ supervisor = read("hfs/supervisor/supervisord.conf")
 ops = read("hfs/services/ops_service.py")
 admin = read("hfs/services/admin_service.py")
 config = read("hfs/config/config.hfs.yaml")
+next_config = read("hfs/config/next.hfs.config.js")
 hf_vars = read("examples/hf-space-variables.example.env")
 makefile = read("Makefile")
 manifest = read("hfs-dev.toml")
@@ -122,6 +124,10 @@ require(".deerflow-upstream-version" in dockerfile and ".deerflow-upstream-ref" 
 require("DEER_FLOW_OPS_SESSION_TTL_SECONDS=3600" in dockerfile, "Dockerfile must expose ops session ttl default")
 require("DEER_FLOW_OPS_COOKIE_SECURE=auto" in dockerfile, "Dockerfile must expose ops cookie secure default")
 require("DEER_FLOW_OPS_LOG_DIR=/data/deer-flow/logs" in dockerfile, "Dockerfile must expose ops log dir default")
+require("pnpm typecheck" in dockerfile and "NODE_OPTIONS=--max-old-space-size=3072" in dockerfile, "Dockerfile must run bounded frontend typecheck separately")
+require("next.config.upstream.js" in dockerfile and "next.hfs.config.js" in dockerfile, "Dockerfile must install the HFS Next build overlay")
+require("webpackMemoryOptimizations: true" in next_config, "HFS Next config must reduce Webpack peak memory")
+require("ignoreBuildErrors: true" in next_config, "HFS Next config must skip only the duplicate in-build typecheck")
 require("--build-arg DEERFLOW_REF=$(DEERFLOW_REF)" in makefile, "Makefile build must pass DEERFLOW_REF")
 expected_manifest = {
     "schema_version": 2,

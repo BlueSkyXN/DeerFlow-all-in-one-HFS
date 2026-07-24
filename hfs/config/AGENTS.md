@@ -1,8 +1,8 @@
 # hfs/config navigation card
 
-`hfs/config/` contains managed DeerFlow runtime config copied into `$DEER_FLOW_HOME`.
-Read this after `hfs/AGENTS.md` before changing models, tools, sandbox, uploads, loop detection, token usage, or MCP/extensions.
-Key files: `config.hfs.yaml`, `extensions_config.json`.
+`hfs/config/` contains managed DeerFlow runtime config copied into `$DEER_FLOW_HOME` and the HFS Next.js build overlay.
+Read this after `hfs/AGENTS.md` before changing models, tools, sandbox, uploads, loop detection, token usage, MCP/extensions, or frontend build limits.
+Key files: `config.hfs.yaml`, `extensions_config.json`, `next.hfs.config.js`.
 
 ## Local invariants
 
@@ -12,11 +12,13 @@ Key files: `config.hfs.yaml`, `extensions_config.json`.
 - Public demo tools stay conservative: web plus file read-oriented tools only.
 - `sandbox.use` remains `deerflow.sandbox.local:LocalSandboxProvider` and `allow_host_bash` remains `false` unless the user explicitly approves a different public-demo posture.
 - `extensions_config.json` is empty for `mcpServers` and `skills`; remote extensions change the trust boundary.
+- `next.hfs.config.js` must extend the pinned upstream config rather than replace its rewrites. Docker runs `pnpm typecheck` separately before the overlay skips Next's duplicate in-build typecheck.
 
 ## Local rules
 
 - Model/provider changes must keep env names aligned with examples, env docs, and `README.md`.
 - Tool, sandbox, upload, or extension changes must be checked against security docs.
+- Next build overlay changes must stay aligned with the Dockerfile typecheck/build sequence and must not remove static analysis without an equivalent earlier gate.
 - Keep placeholders as environment references such as `$OPENAI_API_KEY`; never write real API keys or private endpoints.
 
 ## Do not
