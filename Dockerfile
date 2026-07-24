@@ -119,8 +119,18 @@ RUN --mount=type=cache,target=/home/user/.local/share/pnpm/store,uid=1000,gid=10
     cd /home/user/app/deer-flow/frontend; \
     pnpm install --frozen-lockfile
 
+COPY --chown=1000:1000 hfs/config/next.hfs.config.js /home/user/app/next.hfs.config.js
+
 RUN set -eux; \
     cd /home/user/app/deer-flow/frontend; \
+    SKIP_ENV_VALIDATION=1 \
+    NODE_OPTIONS=--max-old-space-size=3072 \
+    pnpm typecheck
+
+RUN set -eux; \
+    cd /home/user/app/deer-flow/frontend; \
+    mv next.config.js next.config.upstream.js; \
+    cp /home/user/app/next.hfs.config.js next.config.js; \
     NEXT_TELEMETRY_DISABLED=1 \
     SKIP_ENV_VALIDATION=1 \
     DEER_FLOW_INTERNAL_GATEWAY_BASE_URL="${DEER_FLOW_INTERNAL_GATEWAY_BASE_URL:-http://127.0.0.1:8001}" \

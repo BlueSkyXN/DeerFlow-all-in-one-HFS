@@ -6,7 +6,7 @@ This repository is a Pattern A HFS port repository, so the repository root remai
 ```text
 hfs/
 ├─ bin/           entrypoint and Docker healthcheck
-├─ config/        managed DeerFlow and extensions config
+├─ config/        managed DeerFlow config, extensions, and Next build overlay
 ├─ nginx/         public reverse proxy on port 7860
 ├─ supervisor/    process orchestration
 └─ services/      ops/admin Python stdlib services
