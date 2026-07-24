@@ -18,7 +18,7 @@ license: gpl-3.0
 
 本仓库按 HFS `Pattern A` 对齐：它维护的是上游 DeerFlow 在 HFS 上的可运行交付包，而不是 DeerFlow 产品源码本身。因此仓库根目录必须同时作为 Hugging Face Space root 和 GitHub 维护根，不能再套一层 `cloud/hfs/`。
 
-runtime 获取模式是 `source-fetch`：Docker build 阶段通过 `DEERFLOW_REPO` / `DEERFLOW_REF` shallow-fetch 上游源码。仓库当前默认 pin 为 `45865e9f3f5ac1cd05bfce9406b30ea8da864c52`，对应审计时最新 `main` 的 `2.1.0` source candidate；它不是正式 `v2.1.0` release。只有本地临时开发才应显式覆盖 `DEERFLOW_REF=main`。对齐声明见 [hfs-dev.toml](hfs-dev.toml)。
+runtime 获取模式是 `source-fetch`：Docker build 阶段通过 `DEERFLOW_REPO` / `DEERFLOW_REF` shallow-fetch 上游源码。仓库当前默认 pin 为 `964162747f4839a954e247bef82f5f69dde8219d`，对应 2026-07-24 审计时最新 `main` 的 `2.1.0` source candidate；它不是正式 `v2.1.0` release，最新正式 release 仍为 `v2.0.0`。只有本地临时开发才应显式覆盖 `DEERFLOW_REF=main`。对齐声明见 [hfs-dev.toml](hfs-dev.toml)。
 
 当前线上目标：
 
@@ -39,7 +39,7 @@ runtime 获取模式是 `source-fetch`：Docker build 阶段通过 `DEERFLOW_REP
 - Gateway 使用 `uvicorn app.gateway.app:app --host 127.0.0.1 --port 8001`。
 - 默认模型为 Cloudflare AI Gateway OpenAI-compatible endpoint 上的 `longcat-flash-thinking-2601`。
 - `DEER_FLOW_MANAGED_CONFIG=true` 时，启动时会用 `hfs/config/config.hfs.yaml` 覆盖运行态 `/data/deer-flow/config.yaml`，避免旧持久化配置继续生效。
-- managed config 已对齐上游 `config_version: 26`，统一 SQLite 数据库显式落在 `$DEER_FLOW_DB_DIR`，默认 `/data/deer-flow/data/deerflow.db`。
+- managed config 已对齐上游 `config_version: 29`，统一 SQLite 数据库显式落在 `$DEER_FLOW_DB_DIR`，默认 `/data/deer-flow/data/deerflow.db`，并关闭公网本地自助注册。
 - `/setup` 初始化管理员流程、登录态 `/api/models`、真实 chat 调用和 token usage 已通过浏览器验证。
 
 ## 进程与端口
@@ -63,7 +63,7 @@ Hugging Face Docker Space
 | `/workspace` | 登录后工作区。 |
 | `/health` | DeerFlow Gateway 健康检查。 |
 | `/openapi.json` | Gateway OpenAPI schema。 |
-| `/api/v1/auth/setup-status` | 公开 first-boot setup 状态。 |
+| `/api/v1/auth/setup-status` | 公开 first-boot setup 和本地注册策略状态；HFS 期望 `registration_enabled=false`。 |
 | `/api/models` | 登录态模型列表。 |
 | `/api/sandboxes` | HFS demo 中故意返回 `404`，不启用 sandbox provisioner。 |
 | `/nginx-health` | Nginx 直连存活检查。 |

@@ -65,6 +65,12 @@ check /healthz 200
 check /health 200
 check /openapi.json 200
 check /api/v1/auth/setup-status 200
+if ! python3 -c 'import json, sys; data = json.load(open(sys.argv[1], encoding="utf-8")); raise SystemExit(0 if data.get("registration_enabled") is False else 1)' /tmp/deerflow-all-in-one-hfs-smoke.out; then
+  echo "FAIL /api/v1/auth/setup-status: expected registration_enabled=false" >&2
+  cat /tmp/deerflow-all-in-one-hfs-smoke.out >&2 || true
+  exit 1
+fi
+echo "OK   /api/v1/auth/setup-status registration_enabled -> false"
 check /api/sandboxes 404
 check /_ops/healthz 200
 check /_ops/readyz 200

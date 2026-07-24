@@ -38,6 +38,8 @@ hf spaces logs BlueSkyXN/DeerFlow-all-in-one-HFS --build -n 300
 - `/data` 不可写。
 - 首次启动仍在 warming up。
 
+升级到上游 schema 29 后，`/api/v1/auth/setup-status` 还应包含 `registration_enabled=false`。若为 true，检查 `DEER_FLOW_MANAGED_CONFIG=true` 以及运行态 config 中 `auth.local.allow_registration` 是否仍由 HFS 模板接管。
+
 带 token 查看详细状态、具体错误、路径和 upstream SHA：
 
 ```bash

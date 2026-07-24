@@ -34,7 +34,7 @@ make build
 
 ```bash
 docker build \
-  --build-arg DEERFLOW_REF=45865e9f3f5ac1cd05bfce9406b30ea8da864c52 \
+  --build-arg DEERFLOW_REF=964162747f4839a954e247bef82f5f69dde8219d \
   -t deerflow-all-in-one-hfs .
 ```
 
@@ -82,7 +82,7 @@ make smoke
 - `/nginx-health` -> 200
 - `/healthz` -> 200
 - `/openapi.json` -> 200
-- `/api/v1/auth/setup-status` -> 200
+- `/api/v1/auth/setup-status` -> 200，且 `registration_enabled=false`
 - `/api/sandboxes` -> 404
 - `/_ops/healthz` -> 200
 - `/_ops/readyz` -> 200

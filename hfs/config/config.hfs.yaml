@@ -3,7 +3,7 @@
 # $DEER_FLOW_CONFIG_PATH on every startup.
 # Set DEER_FLOW_MANAGED_CONFIG=false before relying on runtime edits under /data.
 
-config_version: 26
+config_version: 29
 log_level: info
 
 # Keep the unified DeerFlow SQLite database under the resolved HFS runtime
@@ -11,6 +11,34 @@ log_level: info
 database:
   backend: sqlite
   sqlite_dir: $DEER_FLOW_DB_DIR
+  pool_recycle: 300
+  command_timeout: 30
+  checkpoint_channel_mode: full
+
+# Keep custom agents on the single-node filesystem. The database backend is
+# intended for shared multi-node deployments and requires an explicit migration.
+agent_storage:
+  backend: file
+
+# Preserve the current single-process behavior while making schema v29 retry
+# defaults explicit. Provider-side quota and budget controls remain authoritative.
+llm_call:
+  max_concurrent_calls: 0
+  retry_max_attempts: 3
+  retry_base_delay_ms: 1000
+  retry_cap_delay_ms: 8000
+  burst_retry_base_delay_ms: 5000
+
+# This private demo is initialized by its owner; do not expose public local
+# self-registration merely because the Gateway is reachable from the Internet.
+auth:
+  local:
+    allow_registration: false
+
+# Upstream authorization enforcement is opt-in. Keep it off until roles and
+# provider policy are designed and tested for this single-user demo.
+authorization:
+  enabled: false
 
 token_usage:
   enabled: true

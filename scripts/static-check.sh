@@ -187,8 +187,15 @@ require('DEER_FLOW_DB_DIR="${DEER_FLOW_HOME}/data"' in entrypoint, "entrypoint m
 require("AUTH_JWT_SECRET" in entrypoint and ".jwt_secret" in entrypoint, "entrypoint must manage the current DeerFlow JWT secret")
 require("BETTER_AUTH_SECRET as the AUTH_JWT_SECRET compatibility source" in entrypoint, "entrypoint must label BETTER_AUTH_SECRET as legacy compatibility")
 
-require("config_version: 26" in config, "managed config must match the reviewed upstream schema version")
+require("config_version: 29" in config, "managed config must match the reviewed upstream schema version")
 require("backend: sqlite" in config and "sqlite_dir: $DEER_FLOW_DB_DIR" in config, "managed config must persist SQLite under DEER_FLOW_DB_DIR")
+require("pool_recycle: 300" in config and "command_timeout: 30" in config, "managed config must declare schema v29 database defaults")
+require("checkpoint_channel_mode: full" in config, "managed config must keep the reviewed full checkpoint mode")
+require("agent_storage:" in config and "backend: file" in config, "managed config must keep single-node agent storage explicit")
+require("llm_call:" in config and "max_concurrent_calls: 0" in config, "managed config must make the reviewed LLM concurrency default explicit")
+require("auth:" in config and "allow_registration: false" in config, "managed config must disable public local self-registration")
+require("authorization:" in config and "enabled: false" in config, "managed config must keep upstream authorization opt-in")
+require("registration_enabled" in smoke, "smoke must verify the public local registration policy")
 
 require("/home/user/app/hfs/services/ops_service.py" in supervisor, "supervisor must start moved ops service")
 require("/home/user/app/hfs/services/admin_service.py" in supervisor, "supervisor must start moved admin service")
