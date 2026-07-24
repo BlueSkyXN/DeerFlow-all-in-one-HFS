@@ -1,6 +1,6 @@
 PROJECT_NAME ?= DeerFlow-all-in-one-HFS
 IMAGE ?= deerflow-all-in-one-hfs
-DEERFLOW_REF ?= 45865e9f3f5ac1cd05bfce9406b30ea8da864c52
+DEERFLOW_REF ?= 964162747f4839a954e247bef82f5f69dde8219d
 PORT ?= 7860
 DATA_DIR ?= $(PWD)/.data
 ENV_FILE ?= .env.local

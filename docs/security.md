@@ -55,6 +55,16 @@ Nginx 需要正确传递 `X-Forwarded-Proto` 和 `X-Forwarded-Host`，当前 `hf
 
 Gateway 当前使用 `AUTH_JWT_SECRET` 签名 session。`BETTER_AUTH_SECRET` 不是当前上游运行时契约，仅由 entrypoint 作为旧 HFS secret 的一次兼容来源。Nginx access log 不记录 query string，避免 OAuth code、token 或其他敏感参数进入公开容器日志。
 
+上游 schema 29 默认允许 `POST /api/v1/auth/register` 创建本地普通账号。HFS managed config 显式设置：
+
+```yaml
+auth:
+  local:
+    allow_registration: false
+```
+
+这不会阻止首次管理员初始化，但会避免可访问 Space 的访客绕过管理员邀请自行注册。`scripts/smoke-test.sh` 会从 `/api/v1/auth/setup-status` 验证 `registration_enabled=false`。
+
 ## Ops routes
 
 公开：
