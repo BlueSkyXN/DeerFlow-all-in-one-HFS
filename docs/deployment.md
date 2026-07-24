@@ -68,7 +68,7 @@ DEER_FLOW_ADMIN_ENABLED=false
 DEER_FLOW_ADMIN_ACTIONS_ENABLED=false
 ```
 
-发布态 build pin 不在 HF Variables 中配置，而是提交在 `Dockerfile ARG DEERFLOW_REF`。当前 pin 为 `964162747f4839a954e247bef82f5f69dde8219d`，是 2026-07-24 审计时最新 `main` 的 `2.1.0` source candidate；最新正式 release 仍为 `v2.0.0`。HF Variables 不会自动变成 Docker build args。
+发布态 build pin 不在 HF Variables 中配置，而是提交在 `Dockerfile ARG DEERFLOW_REF`。当前 pin 为 `16b612cfcfda48e302ca6ddb5905a0282f854873`，是 2026-07-24 最终 release cut 时最新 `main` 的 `2.1.0` source candidate；最新正式 release 仍为 `v2.0.0`。HF Variables 不会自动变成 Docker build args。
 
 ## 5. Secrets
 

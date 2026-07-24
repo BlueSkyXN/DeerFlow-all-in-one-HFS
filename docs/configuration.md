@@ -36,7 +36,7 @@
 | `DEER_FLOW_ADMIN_ENABLED` | `false` | 是否启用 admin API。公开 demo 默认关闭；维护窗口才设为 true。 |
 | `DEER_FLOW_ADMIN_ACTIONS_ENABLED` | `false` | 是否允许 reload/restart 固定写动作。默认 false。 |
 
-`DEERFLOW_REF`、`APT_MIRROR`、`NPM_REGISTRY`、`UV_INDEX_URL` 是 Docker build args，不是 HF runtime Variables。Hugging Face Docker Space 不会把 Settings -> Variables 自动传给 `Dockerfile ARG`。发布 pin 必须提交在 Dockerfile 中；当前 pin 是 `964162747f4839a954e247bef82f5f69dde8219d`。本地可以通过 `make build DEERFLOW_REF=main` 临时覆盖。
+`DEERFLOW_REF`、`APT_MIRROR`、`NPM_REGISTRY`、`UV_INDEX_URL` 是 Docker build args，不是 HF runtime Variables。Hugging Face Docker Space 不会把 Settings -> Variables 自动传给 `Dockerfile ARG`。发布 pin 必须提交在 Dockerfile 中；当前 pin 是 `16b612cfcfda48e302ca6ddb5905a0282f854873`。本地可以通过 `make build DEERFLOW_REF=main` 临时覆盖。
 
 ## Managed config 安全与兼容默认
 
