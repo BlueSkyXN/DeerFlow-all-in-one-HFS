@@ -36,7 +36,7 @@ Docker build 会先运行 `pnpm typecheck`，再加载 HFS Next config overlay�
 
 ```bash
 docker build \
-  --build-arg DEERFLOW_REF=964162747f4839a954e247bef82f5f69dde8219d \
+  --build-arg DEERFLOW_REF=16b612cfcfda48e302ca6ddb5905a0282f854873 \
   -t deerflow-all-in-one-hfs .
 ```
 

@@ -52,7 +52,7 @@ hfs/
 1. 基于 `python:3.12-slim-bookworm`。
 2. 安装 `bash`、`build-essential`、`curl`、`git`、`jq`、`nginx`、`supervisor`、`tini`、Node.js 22、`pnpm@10.26.2`。
 3. 从 `DEERFLOW_REPO` shallow-fetch 上游 DeerFlow，默认 `https://github.com/bytedance/deer-flow.git`。
-4. 检出精确 `DEERFLOW_REF`；当前默认 pin 为 `964162747f4839a954e247bef82f5f69dde8219d`，并记录 upstream SHA/ref/version。
+4. 检出精确 `DEERFLOW_REF`；当前默认 pin 为 `16b612cfcfda48e302ca6ddb5905a0282f854873`，并记录 upstream SHA/ref/version。
 5. 在 `backend` 执行 `uv sync`。
 6. 在 `frontend` 执行 `pnpm install --frozen-lockfile`。
 7. 用受限 Node heap 独立执行 `pnpm typecheck`，完成 frontend 静态类型门槛。

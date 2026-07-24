@@ -18,7 +18,7 @@ license: gpl-3.0
 
 本仓库按 HFS `Pattern A` 对齐：它维护的是上游 DeerFlow 在 HFS 上的可运行交付包，而不是 DeerFlow 产品源码本身。因此仓库根目录必须同时作为 Hugging Face Space root 和 GitHub 维护根，不能再套一层 `cloud/hfs/`。
 
-runtime 获取模式是 `source-fetch`：Docker build 阶段通过 `DEERFLOW_REPO` / `DEERFLOW_REF` shallow-fetch 上游源码。仓库当前默认 pin 为 `964162747f4839a954e247bef82f5f69dde8219d`，对应 2026-07-24 审计时最新 `main` 的 `2.1.0` source candidate；它不是正式 `v2.1.0` release，最新正式 release 仍为 `v2.0.0`。只有本地临时开发才应显式覆盖 `DEERFLOW_REF=main`。对齐声明见 [hfs-dev.toml](hfs-dev.toml)。
+runtime 获取模式是 `source-fetch`：Docker build 阶段通过 `DEERFLOW_REPO` / `DEERFLOW_REF` shallow-fetch 上游源码。仓库当前默认 pin 为 `16b612cfcfda48e302ca6ddb5905a0282f854873`，对应 2026-07-24 最终 release cut 时最新 `main` 的 `2.1.0` source candidate；它不是正式 `v2.1.0` release，最新正式 release 仍为 `v2.0.0`。只有本地临时开发才应显式覆盖 `DEERFLOW_REF=main`。对齐声明见 [hfs-dev.toml](hfs-dev.toml)。
 
 当前线上目标：
 
