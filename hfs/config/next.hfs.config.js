@@ -5,6 +5,9 @@ function withHfsBuildLimits(config = {}) {
     ...config,
     experimental: {
       ...(config.experimental ?? {}),
+      // HF cpu-basic provides 2 vCPU. Do not inherit the builder host's much
+      // larger CPU count and spawn excessive page-data workers.
+      cpus: 2,
       webpackMemoryOptimizations: true,
     },
     typescript: {
