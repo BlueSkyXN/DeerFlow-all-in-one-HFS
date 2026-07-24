@@ -56,11 +56,11 @@ hfs/
 5. 在 `backend` 执行 `uv sync`。
 6. 在 `frontend` 执行 `pnpm install --frozen-lockfile`。
 7. 用受限 Node heap 独立执行 `pnpm typecheck`，完成 frontend 静态类型门槛。
-8. 保留 upstream `next.config.js` 并叠加 `hfs/config/next.hfs.config.js`；启用官方 `webpackMemoryOptimizations`，在已完成独立 typecheck 后跳过 Next build 内的重复类型检查。
+8. 保留 upstream `next.config.js` 并叠加 `hfs/config/next.hfs.config.js`；把 page-data workers 固定为与 `cpu-basic` 一致的 2，启用官方 `webpackMemoryOptimizations`，并在已完成独立 typecheck 后跳过 Next build 内的重复类型检查。
 9. 执行 `pnpm exec next build --webpack` 生成生产前端。
 10. 复制 `hfs/`、`docs/`、`examples/`、`scripts/` 和 README 到镜像。
 
-Next.js 16 默认会在 build/dev 中使用 Turbopack。实际 HF `cpu-basic` 环境中，Turbopack production build 卡在优化阶段；dev server 又会让 `/setup` 卡在 `Loading...`。升级后的 upstream frontend 在 Webpack compile 后紧接 TypeScript 时还会超过 build memory。当前因此把 typecheck 与 bundle 分成两个进程，并使用 Next 16 官方的 `experimental.webpackMemoryOptimizations` 降低峰值；没有删除类型检查。runtime 仍使用 `next start`，避免 HMR 依赖。
+Next.js 16 默认会在 build/dev 中使用 Turbopack。实际 HF `cpu-basic` 环境中，Turbopack production build 卡在优化阶段；dev server 又会让 `/setup` 卡在 `Loading...`。升级后的 upstream frontend 在 Webpack compile 后紧接 TypeScript 时还会超过 build memory，builder host 还会误探测出 15 个 page-data workers，而目标硬件只有 2 vCPU。当前因此把 typecheck 与 bundle 分成两个进程、固定 2 个 build workers，并使用 Next 16 官方的 `experimental.webpackMemoryOptimizations` 降低峰值；没有删除类型检查。runtime 仍使用 `next start`，避免 HMR 依赖。
 
 ## Nginx 路由
 

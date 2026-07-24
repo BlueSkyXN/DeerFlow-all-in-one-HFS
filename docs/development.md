@@ -30,7 +30,7 @@ DEER_FLOW_ADMIN_TOKEN=<local-admin-token>
 make build
 ```
 
-Docker build 会先运行 `pnpm typecheck`，再加载 HFS Next config overlay 执行 webpack production build。这个拆分用于避免 HF `cpu-basic` 在 Webpack graph 与 TypeScript program 同时驻留时被 OOM kill；typecheck 失败仍会直接终止构建。
+Docker build 会先运行 `pnpm typecheck`，再加载 HFS Next config overlay，以 2 个 build workers 执行 webpack production build。这个拆分和 worker 上限用于避免 HF `cpu-basic` 在 Webpack graph、TypeScript program 或过量 page-data workers 并发驻留时被 OOM kill；typecheck 失败仍会直接终止构建。
 
 等价命令：
 

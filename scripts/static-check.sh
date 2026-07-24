@@ -126,6 +126,7 @@ require("DEER_FLOW_OPS_COOKIE_SECURE=auto" in dockerfile, "Dockerfile must expos
 require("DEER_FLOW_OPS_LOG_DIR=/data/deer-flow/logs" in dockerfile, "Dockerfile must expose ops log dir default")
 require("pnpm typecheck" in dockerfile and "NODE_OPTIONS=--max-old-space-size=3072" in dockerfile, "Dockerfile must run bounded frontend typecheck separately")
 require("next.config.upstream.js" in dockerfile and "next.hfs.config.js" in dockerfile, "Dockerfile must install the HFS Next build overlay")
+require("cpus: 2" in next_config, "HFS Next config must match cpu-basic worker capacity")
 require("webpackMemoryOptimizations: true" in next_config, "HFS Next config must reduce Webpack peak memory")
 require("ignoreBuildErrors: true" in next_config, "HFS Next config must skip only the duplicate in-build typecheck")
 require("--build-arg DEERFLOW_REF=$(DEERFLOW_REF)" in makefile, "Makefile build must pass DEERFLOW_REF")
