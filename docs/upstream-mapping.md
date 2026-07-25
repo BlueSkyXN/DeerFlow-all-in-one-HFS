@@ -4,9 +4,9 @@
 
 ## 当前上游基线
 
-本仓当前验证目标是 `bytedance/deer-flow` commit `16b612cfcfda48e302ca6ddb5905a0282f854873`，其 backend/frontend package version 为 `2.1.0`。这是 2026-07-24 最终 release cut 时最新 `main` 的 source candidate，不是正式 `v2.1.0` release；最新正式 release 仍为 `v2.0.0`。Dockerfile 通过 shallow `git fetch --depth 1 <sha>` 获取该提交，避免把 SHA 当 branch clone 后退化成完整仓库下载。
+本仓当前验证目标是 `bytedance/deer-flow` commit `0f0955bf7b2ae64ecb5099551b86049c2091a80a`，其 backend/frontend package version 为 `2.1.0`。这是 2026-07-25 release cut 时最新 `main` 的 source candidate，不是正式 `v2.1.0` release；最新正式 release 仍为 `v2.0.0`。Dockerfile 通过 shallow `git fetch --depth 1 <sha>` 获取该提交，避免把 SHA 当 branch clone 后退化成完整仓库下载。
 
-从上一轮 pin `45865e9f3f5ac1cd05bfce9406b30ea8da864c52` 到当前基线，上游前进 131 commits。构建和启动主契约仍保持 Python 3.12、Node 22、pnpm 10.26.2、`uv sync`、Gateway `8001`、frontend `3000`，`AUTH_JWT_SECRET`、`DEER_FLOW_HOME` 和 SQLite 路径契约也未移除。release cut 前最后两个提交只修正 GitHub channel busy-run follow-up buffer 与 frontend 消息图片宽度，不要求新的 wrapper contract。
+从上一轮 pin `45865e9f3f5ac1cd05bfce9406b30ea8da864c52` 到当前基线，上游前进 133 commits。构建和启动主契约仍保持 Python 3.12、Node 22、pnpm 10.26.2、`uv sync`、Gateway `8001`、frontend `3000`，`AUTH_JWT_SECRET`、`DEER_FLOW_HOME` 和 SQLite 路径契约也未移除。最新两个提交修正 thread history reload 时的 subagent AI 过滤，以及 embedded client 对 `ToolMessage.artifact` 的保留；它们不改变 HFS wrapper 的 config、环境变量、端口或安全边界。
 
 本轮 wrapper 必须跟进的是 `config_version: 29` 及其新增默认：SQLite connection/checkpoint 参数、单节点 agent storage、LLM retry/concurrency、authorization opt-in 和本地注册策略。HFS 显式关闭 `auth.local.allow_registration`，继续保持 LocalSandboxProvider、单 worker、host bash disabled 和 `/api/sandboxes=404`。上游 2.1.0 还包含 memory storage/schema、skills package boundary 和数据库 migrations `0005`–`0007`；本仓没有自定义 memory/skills 配置，但已有持久化 `/data` 的部署应在升级前备份并在升级后回读迁移结果。
 
