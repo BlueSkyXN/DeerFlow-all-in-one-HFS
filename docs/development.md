@@ -6,7 +6,9 @@
 - 能访问 GitHub、PyPI、npm registry、ghcr.io。
 - 如需真实 chat，需要可用的 OpenAI-compatible API token。当前 HFS 默认把 `OPENAI_API_KEY` 当作 Cloudflare AI Gateway bearer token。
 
-## 准备本地 env
+## HFS 值账本与本地 env
+
+`.env` 是后续 HFS 同步的被忽略值账本：从仅含键名的 `.env.example` 创建并在本机填写。它不改变本地启动方式，也不能替代构建 pin。`Makefile` 默认仍读取 `.env.local`，所以本地 Docker 开发继续显式使用现有兼容模板：
 
 ```bash
 cp examples/local.env.example .env.local
@@ -102,9 +104,10 @@ make static-check
 
 - shell / Python 语法。
 - ops/admin dependency-free service contract integration checks。
-- Pattern A root layout 没有误迁到 `cloud/hfs/`。
+- HFS v2 `port` / `source` / `commit` 登记、环境变量键名分类、互斥性和无 token 值。
+- `.env.example` 仅含 HFS Variables/Secrets 的键名；`.env`、`.env.local`、`config.toml` 和 `local/` 保持忽略。
 - `README.md` metadata、`Dockerfile EXPOSE`、Nginx listen、healthcheck、smoke 端口一致。
-- `hfs/` 内部路径、admin API/write actions 默认关闭、SHA pin、config v26、SQLite/JWT/persistence contract 一致。
+- `hfs/` 内部路径、admin API/write actions 默认关闭、Dockerfile 与 Makefile 的 SHA pin、config v29、SQLite/JWT/persistence contract 一致。
 
 ## Shell
 
@@ -135,7 +138,7 @@ make shell
 make clean
 ```
 
-如果你启用了 `DEER_FLOW_MANAGED_CONFIG=true`，容器每次启动会用 `hfs/config/config.hfs.yaml` 覆盖 `.data/deer-flow/config.yaml`。
+`DEER_FLOW_MANAGED_CONFIG=true` 是当前默认 wrapper-managed config：容器**每次启动**都会用 `hfs/config/config.hfs.yaml` 覆盖 `.data/deer-flow/config.yaml`。本轮不登记 `seed_file` 或 mount config，也不改动 `hfs/bin/entrypoint.sh`；如显式设为 false，运行态文件将自行承担配置漂移。
 
 ## 构建镜像源优化
 

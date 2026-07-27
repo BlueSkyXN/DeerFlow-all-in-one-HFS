@@ -2,6 +2,8 @@
 .data/
 .env
 .env.*
+!.env.example
+config.toml
 *.log
 *.zip
 __pycache__/

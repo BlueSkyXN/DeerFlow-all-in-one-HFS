@@ -1,10 +1,11 @@
 # ENV Reference
 
-本项目把环境变量分成三层：
+本项目把环境变量分成四层：
 
-- Hugging Face Variables：非敏感运行参数。
-- Hugging Face Secrets：API key、token、session secret。
-- 本地 `.env.local`：本机私有台账，必须 gitignored。
+- 被忽略的 `.env`：HFS 同步的本地值账本；只在本机保存实际值，绝不提交或上传到文档。
+- `.env.example`：公开键名模板，不含任何值；其键和分类必须与 `hfs-dev.toml` 一致。
+- Hugging Face Variables / Secrets：远端运行设置，分别承载非敏感参数和 secret。
+- `.env.local`：既有本地 Docker 运行兼容文件，`Makefile` 继续默认使用它，不是 HFS 同步输入。
 
 不要把真实 key、token、密码、内部 URL 或个人信息写入 commit、README、docs、issue、PR、截图或公开日志。
 
@@ -36,7 +37,7 @@
 | `DEER_FLOW_ADMIN_ENABLED` | `false` | 是否启用 admin API。公开 demo 默认关闭；维护窗口才设为 true。 |
 | `DEER_FLOW_ADMIN_ACTIONS_ENABLED` | `false` | 是否允许 reload/restart 固定写动作。默认 false。 |
 
-`DEERFLOW_REF`、`APT_MIRROR`、`NPM_REGISTRY`、`UV_INDEX_URL` 是 Docker build args，不是 HF runtime Variables。Hugging Face Docker Space 不会把 Settings -> Variables 自动传给 `Dockerfile ARG`。发布 pin 必须提交在 Dockerfile 中；当前 pin 是 `3b77a7401b549fa6da4c8e1f8c2c0081d56e3d7a`。本地可以通过 `make build DEERFLOW_REF=main` 临时覆盖。
+`DEERFLOW_REF`、`APT_MIRROR`、`NPM_REGISTRY`、`UV_INDEX_URL` 是本地 build args，不是 HF runtime Variables。Hugging Face Docker Space 不会把 Settings -> Variables 自动传给 `Dockerfile ARG`。发布 pin 只由 `Dockerfile` 和 `Makefile` 的同一完整 SHA 维护，HFS v2 manifest 不重复登记它；本地可以通过 `make build DEERFLOW_REF=main` 临时覆盖。
 
 ## Managed config 安全与兼容默认
 
@@ -81,70 +82,43 @@ supports_vision: false
 
 注意：`base_url` 是 OpenAI-compatible client 的 base URL，应停在 `/v2`，不要把 `/chat/completions` 写进 `base_url`。
 
-## `.env.local` 台账建议
+## HFS 值账本与本地兼容
 
-`.env.local` 只用于本机，不提交。
-
-```bash
-# [HF_SPACE]
-HF_SPACE_ID=BlueSkyXN/DeerFlow-all-in-one-HFS
-HF_SPACE_URL=https://blueskyxn-deerflow-all-in-one-hfs.hf.space
-
-# [VARIABLES]
-DEER_FLOW_ENV=hf-space
-DEER_FLOW_HOME=/data/deer-flow
-DEER_FLOW_DB_DIR=/data/deer-flow/data
-DEER_FLOW_CONFIG_PATH=/data/deer-flow/config.yaml
-DEER_FLOW_EXTENSIONS_CONFIG_PATH=/data/deer-flow/extensions_config.json
-DEER_FLOW_SKILLS_PATH=/home/user/app/deer-flow/skills
-DEER_FLOW_MANAGED_CONFIG=true
-GATEWAY_CORS_ORIGINS=https://blueskyxn-deerflow-all-in-one-hfs.hf.space
-DEER_FLOW_TRUSTED_ORIGINS=https://blueskyxn-deerflow-all-in-one-hfs.hf.space
-DEER_FLOW_OPS_PORT=8081
-DEER_FLOW_OPS_SESSION_TTL_SECONDS=3600
-DEER_FLOW_OPS_COOKIE_SECURE=auto
-DEER_FLOW_OPS_DEFAULT_CHECKS_ENABLED=true
-DEER_FLOW_OPS_LOG_DIR=/data/deer-flow/logs
-DEER_FLOW_OPS_LOG_LINES_MAX=1000
-DEER_FLOW_OPS_LOG_TAIL_MAX_BYTES=1048576
-DEER_FLOW_ADMIN_PORT=8082
-DEER_FLOW_ADMIN_ENABLED=false
-DEER_FLOW_ADMIN_ACTIONS_ENABLED=false
-
-# [SECRETS]
-OPENAI_API_KEY=...
-AUTH_JWT_SECRET=...
-DEER_FLOW_INTERNAL_AUTH_TOKEN=...
-DEER_FLOW_OPS_TOKEN=...
-DEER_FLOW_ADMIN_TOKEN=...
-
-# [LOCAL_SMOKE]
-SMOKE_BASE_URL=https://blueskyxn-deerflow-all-in-one-hfs.hf.space
-```
-
-## HF CLI 设置示例
-
-Variables：
+先从公开模板创建本机 HFS 值账本，再仅在本机填入需要同步的值：
 
 ```bash
-hf spaces variables add BlueSkyXN/DeerFlow-all-in-one-HFS -e DEER_FLOW_MANAGED_CONFIG=true
-hf spaces variables add BlueSkyXN/DeerFlow-all-in-one-HFS -e GATEWAY_CORS_ORIGINS=https://blueskyxn-deerflow-all-in-one-hfs.hf.space
-hf spaces variables add BlueSkyXN/DeerFlow-all-in-one-HFS -e DEER_FLOW_DB_DIR=/data/deer-flow/data
+cp .env.example .env
 ```
 
-Secrets：
+`.env` 只供后续 HFS 同步使用；`hfs-dev.toml` 只登记 `local_only`、`secrets`、`variables` 三类键名，不含值。`local_only`（包括 build args、smoke aliases 和内部覆盖项）不得同步为 Space 设置。
+
+本项目保持上游 YAML/JSON 与 env-driven 配置，不创建无意义的 `config.toml`，也没有需要分发的
+seed。Settings 必须从忽略的本地 `.env` 事实源执行 `diff → push → readback`；candidate 和
+production 使用独立 manifest，不能临时覆盖同一个 `space`：
 
 ```bash
-hf spaces secrets add BlueSkyXN/DeerFlow-all-in-one-HFS -s OPENAI_API_KEY=<token>
-hf spaces secrets add BlueSkyXN/DeerFlow-all-in-one-HFS -s AUTH_JWT_SECRET=<long-random-secret>
-hf spaces secrets add BlueSkyXN/DeerFlow-all-in-one-HFS -s DEER_FLOW_OPS_TOKEN=<token>
-hf spaces secrets add BlueSkyXN/DeerFlow-all-in-one-HFS -s DEER_FLOW_ADMIN_TOKEN=<token>
+python3 scripts/hf_space_sync.py diff --manifest hfs-dev.candidate.toml --env-file .env
+python3 scripts/hf_space_sync.py push --manifest hfs-dev.candidate.toml --env-file .env
+python3 scripts/hf_space_sync.py diff --manifest hfs-dev.candidate.toml --env-file .env
 ```
+
+最后一次 `diff` 是 readback：Secret 只核名称，Variable 核值。清理窗口获批前不得使用
+`--prune --yes`。旧 Ruijie wrapper 仅作为只读回退材料保留；取得 7 天无活动引用证据后，
+再单独请求删除确认。
+
+本地 Docker 开发仍使用既有模板和显式 `.env.local`：
+
+```bash
+cp examples/local.env.example .env.local
+make run
+```
+
+不要以 `.env.local` 作为 HFS 的事实源，也不要把 `.env` 传给默认 `make run`。本轮不执行远端 Variables/Secrets 写入；远端对账、重建和 smoke 是后续发布门禁。
 
 ## 变更生效规则
 
-- HF Variables/Secrets 改动通常会触发 Space 重启。
-- `hfs/config/config.hfs.yaml` 改动需要 push HF 并等待 rebuild。
-- `DEER_FLOW_MANAGED_CONFIG=true` 会在启动时覆盖旧 `/data/deer-flow/config.yaml`。
-- 如果设为 false，运行态 config 会成为 source of truth，仓库模板不再自动接管。
-- Docker build pin 来自已提交的 `Dockerfile ARG DEERFLOW_REF=<commit-sha>`；HF runtime Variables 不能替代它。
+- HF Variables/Secrets 的远端改动通常会触发 Space 重启；本轮没有执行这类写入。
+- `hfs/config/config.hfs.yaml` 改动需要推送并等待远端 rebuild，属于后续门禁。
+- `DEER_FLOW_MANAGED_CONFIG=true` 时，entrypoint **每次启动**都会覆盖 `$DEER_FLOW_CONFIG_PATH`（当前为 `/data/deer-flow/config.yaml`）；这是 wrapper-managed config，不登记 `seed_file` 或 mount config。
+- 如果设为 false，运行态 config 会成为 source of truth，仓库模板不再自动接管，配置漂移由运行方负责。
+- Docker build pin 来自已提交的 `Dockerfile ARG DEERFLOW_REF=<commit-sha>`，并由 `Makefile` 直接保持一致；HF runtime Variables 和 HFS v2 manifest 都不能替代或重复它。
