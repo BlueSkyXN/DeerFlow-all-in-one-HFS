@@ -226,10 +226,13 @@ def parse_ops_session(cookie_value: str) -> bool:
 
 
 def supplied_header_token(handler: BaseHTTPRequestHandler) -> str:
+    ops_header = handler.headers.get("X-Ops-Token", "").strip()
+    if ops_header:
+        return ops_header
     auth = handler.headers.get("Authorization", "")
     if auth.lower().startswith("bearer "):
         return auth.split(" ", 1)[1].strip()
-    return handler.headers.get("X-Ops-Token", "").strip()
+    return ""
 
 
 def cookie_authorized(handler: BaseHTTPRequestHandler) -> bool:
