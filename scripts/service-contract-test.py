@@ -188,6 +188,19 @@ def main() -> None:
                 ops_port, "/status", headers={"X-Ops-Token": "ops-secret"}
             )
             check("ops header auth", status, 200, completed)
+            check(
+                "ops header auth takes precedence over gateway bearer",
+                request(
+                    ops_port,
+                    "/status",
+                    headers={
+                        "Authorization": "Bearer hf-gateway-token",
+                        "X-Ops-Token": "ops-secret",
+                    },
+                )[0],
+                200,
+                completed,
+            )
             session_cookie = headers.get("Set-Cookie", "")
             check(
                 "ops session is HttpOnly", "HttpOnly" in session_cookie, True, completed
