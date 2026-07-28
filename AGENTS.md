@@ -19,7 +19,7 @@
 |---|---|---:|---|
 | `Dockerfile` | Hugging Face Docker Space 镜像定义；安装 Python 3.12、Node.js 22、pnpm、nginx、supervisor、tini、`uv`，并构建上游 DeerFlow backend/frontend | No | 修改构建参数、系统依赖、上游 clone/ref、frontend/backend build 流程、COPY 路径或镜像入口前 |
 | `Makefile` | 本地 Docker build/run/smoke/shell/clean 命令面 | No | 修改本地运行流程、端口、数据目录、image tag、env 文件或 smoke target 前 |
-| `hfs-dev.toml` | HFS Pattern A / repo-root / source-fetch 对齐声明和 release pin contract | No | 修改 HFS 范式、public port、required files、release pin 或 checker 期望前 |
+| `hfs-dev.toml` | HFS v2 项目语义与环境变量键名登记；build pin 仍以 Dockerfile/Makefile 为准 | No | 修改 HFS v2 语义、环境变量分类或 checker 期望前 |
 | `.github/workflows/` | GitHub Actions；当前只运行 static-check | No | 修改 CI 触发条件、runner、check 命令或 required gate 前 |
 | `hfs/` | Runtime guardrail layer，复制到镜像内 `/home/user/app/hfs` | Yes | 修改任何 runtime script、config、Nginx、Supervisor、ops/admin service 前 |
 | `hfs/bin/` | Runtime shell 入口和 Docker healthcheck | Yes | 修改启动流程、runtime home、managed config、secret 生成、persistence probe 或 health endpoint 前 |

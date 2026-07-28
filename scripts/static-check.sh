@@ -5,8 +5,17 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "${SCRIPT_DIR}/.."
 
 bash -n hfs/bin/entrypoint.sh hfs/bin/healthcheck.sh scripts/smoke-test.sh scripts/static-check.sh
-python3 -m py_compile hfs/services/ops_service.py hfs/services/admin_service.py scripts/service-contract-test.py
-python3 scripts/service-contract-test.py
+PYTHONDONTWRITEBYTECODE=1 python3 - <<'PY'
+from pathlib import Path
+
+for path in (
+    "hfs/services/ops_service.py",
+    "hfs/services/admin_service.py",
+    "scripts/service-contract-test.py",
+):
+    compile(Path(path).read_text(encoding="utf-8"), path, "exec")
+PY
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/service-contract-test.py
 
 python3 - <<'PY'
 from __future__ import annotations
@@ -43,6 +52,8 @@ required_paths = [
     "README.md",
     "Dockerfile",
     "hfs-dev.toml",
+    "hfs-dev.candidate.toml",
+    ".env.example",
     "Makefile",
     "hfs/bin/entrypoint.sh",
     "hfs/bin/healthcheck.sh",
@@ -55,6 +66,7 @@ required_paths = [
     "hfs/services/admin_service.py",
     "scripts/smoke-test.sh",
     "scripts/service-contract-test.py",
+    "scripts/hf_space_sync.py",
     "docs/architecture.md",
     "docs/configuration.md",
     "docs/deployment.md",
@@ -103,6 +115,7 @@ hf_vars = read("examples/hf-space-variables.example.env")
 makefile = read("Makefile")
 manifest = read("hfs-dev.toml")
 manifest_data = tomllib.loads(manifest)
+candidate_manifest_data = tomllib.loads(read("hfs-dev.candidate.toml"))
 
 frontmatter = readme.split("---", 2)
 require(len(frontmatter) >= 3, "README.md must start with HF metadata frontmatter")
@@ -131,38 +144,75 @@ require("webpackMemoryOptimizations: true" in next_config, "HFS Next config must
 require("ignoreBuildErrors: true" in next_config, "HFS Next config must skip only the duplicate in-build typecheck")
 require("--build-arg DEERFLOW_REF=$(DEERFLOW_REF)" in makefile, "Makefile build must pass DEERFLOW_REF")
 expected_manifest = {
-    "schema_version": 2,
-    "standard": "hfs-dev",
-    "pattern": "A",
-    "runtime_mode": "source-fetch",
-    "space_root_mode": "repo-root",
-    "hfs_dir": ".",
-    "public_port": 7860,
-    "release_pin_required": True,
+    "standard": "2.0",
+    "project": "DeerFlow-all-in-one-HFS",
+    "space": "BlueSkyXN/DeerFlow-all-in-one-HFS",
+    "sovereignty": "port",
+    "lane": "source",
+    "version_source": "commit",
 }
 for key, value in expected_manifest.items():
     require(manifest_data.get(key) == value, f"hfs-dev.toml {key} must be {value!r}")
-require("release_pin_surfaces" not in manifest_data, "hfs-dev.toml v2 must use structured [[release_pins]]")
-release_pins = manifest_data.get("release_pins")
-require(isinstance(release_pins, list) and release_pins, "hfs-dev.toml must declare structured release_pins")
-require(all(isinstance(pin, dict) for pin in release_pins), "hfs-dev.toml release_pins entries must be tables")
-pins_by_name = {pin.get("name"): pin for pin in release_pins if isinstance(pin, dict)}
-require(len(pins_by_name) == len(release_pins), "hfs-dev.toml release_pins names must be unique")
-require(set(pins_by_name) == {"DEERFLOW_REF"}, "hfs-dev.toml release_pins must declare only DEERFLOW_REF")
-deerflow_ref_pin = pins_by_name["DEERFLOW_REF"]
-expected_ref_pin = {
-    "type": "git_ref",
-    "source": "Dockerfile ARG",
-    "required_for_release": True,
-    "dev_mutable_default_allowed": False,
-    "release_requires_commit_sha": True,
-}
-for key, value in expected_ref_pin.items():
-    require(deerflow_ref_pin.get(key) == value, f"hfs-dev.toml DEERFLOW_REF.{key} must be {value!r}")
+
 require(
-    isinstance(deerflow_ref_pin.get("description"), str) and "commit SHA" in deerflow_ref_pin["description"],
-    "hfs-dev.toml DEERFLOW_REF must document commit SHA release requirement",
+    candidate_manifest_data.get("space") == "BlueSkyXN/DeerFlow-all-in-one-HFS-v2-candidate",
+    "candidate manifest must select the fixed private candidate Space",
 )
+for key in sorted(set(manifest_data) | set(candidate_manifest_data)):
+    if key != "space":
+        require(
+            manifest_data.get(key) == candidate_manifest_data.get(key),
+            f"candidate manifest differs from production at {key}",
+        )
+
+classification_fields = ("local_only", "secrets", "variables")
+allowed_manifest_fields = set(expected_manifest) | set(classification_fields)
+require(
+    set(manifest_data) == allowed_manifest_fields,
+    "hfs-dev.toml must contain only HFS v2 fields and key classifications",
+)
+require(
+    {"HF_TOKEN", "GH_TOKEN"}.issubset(set(manifest_data["local_only"])),
+    "HFS control credentials must remain local_only",
+)
+require(
+    re.search(r"(?:hf_[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,})", manifest)
+    is None,
+    "hfs-dev.toml must register names only, never token values",
+)
+
+classified_keys: dict[str, list[str]] = {}
+for field in classification_fields:
+    keys = manifest_data.get(field)
+    require(isinstance(keys, list) and keys, f"hfs-dev.toml {field} must be a non-empty key list")
+    require(all(isinstance(key, str) and re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", key) for key in keys), f"hfs-dev.toml {field} contains an invalid environment key")
+    require(len(keys) == len(set(keys)), f"hfs-dev.toml {field} contains duplicate environment keys")
+    classified_keys[field] = keys
+
+for left, right in (("local_only", "secrets"), ("local_only", "variables"), ("secrets", "variables")):
+    overlap = sorted(set(classified_keys[left]) & set(classified_keys[right]))
+    require(not overlap, f"hfs-dev.toml {left} and {right} must be mutually exclusive: {overlap}")
+
+env_example_keys: list[str] = []
+for line_number, line in enumerate(read(".env.example").splitlines(), start=1):
+    stripped = line.strip()
+    if not stripped or stripped.startswith("#"):
+        continue
+    match = re.fullmatch(r"([A-Za-z_][A-Za-z0-9_]*)=", stripped)
+    require(match is not None, f".env.example:{line_number} must contain a key name with no value")
+    env_example_keys.append(match.group(1))
+require(len(env_example_keys) == len(set(env_example_keys)), ".env.example must not repeat keys")
+require(
+    set(env_example_keys) == set(classified_keys["secrets"]) | set(classified_keys["variables"]),
+    ".env.example must contain every HFS secret and variable key, and no local-only key",
+)
+gitignore = read(".gitignore")
+for ignore_rule in (".env", ".env.*", "!.env.example", "config.toml", "local/"):
+    require(re.search(rf"(?m)^{re.escape(ignore_rule)}$", gitignore) is not None, f".gitignore must declare {ignore_rule}")
+
+configuration_docs = read("docs/configuration.md")
+for fragment in ("hf_space_sync.py diff", "hf_space_sync.py push", "readback", "没有需要分发的"):
+    require(fragment in configuration_docs, f"configuration docs must explain {fragment!r}")
 
 require("listen 7860 default_server;" in nginx, "Nginx must listen on 7860")
 require("log_format hfs_safe" in nginx and "$request_method $uri $server_protocol" in nginx, "Nginx access logs must omit query strings")

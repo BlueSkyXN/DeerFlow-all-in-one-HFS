@@ -14,7 +14,7 @@ sdk: docker
 app_port: 7860
 ```
 
-HF 会用根目录 `Dockerfile` 构建镜像。
+HF 会用根目录 `Dockerfile` 构建镜像。根 `hfs-dev.toml` 是 HFS v2 语义登记：本仓是 `port` / `source` / `commit`，仅登记环境变量键名；它不是部署 manifest、seed file 或 build pin 的副本。`DEERFLOW_REF` 的完整 SHA 只由 `Dockerfile` 和 `Makefile` 维护。
 
 ## 2. 推送代码
 
@@ -40,7 +40,9 @@ git push hf main
 
 ## 4. Variables
 
-在 Space Settings -> Variables 添加：
+先在本机从 `.env.example` 创建被忽略的 `.env`，将其作为 HFS 同步值账本；公开模板和 `hfs-dev.toml` 只含键名。`.env.local` 仅保留给本地 Docker 运行，不能作为 HFS 同步事实源。远端同步、对账和写入不属于本轮改动。
+
+在后续发布门禁中，按该账本在 Space Settings -> Variables 对账：
 
 ```bash
 DEER_FLOW_ENV=hf-space
@@ -68,7 +70,7 @@ DEER_FLOW_ADMIN_ENABLED=false
 DEER_FLOW_ADMIN_ACTIONS_ENABLED=false
 ```
 
-发布态 build pin 不在 HF Variables 中配置，而是提交在 `Dockerfile ARG DEERFLOW_REF`。当前 pin 为 `3b77a7401b549fa6da4c8e1f8c2c0081d56e3d7a`，是 2026-07-25 release cut 时最新 `main` 的 `2.1.0` source candidate；最新正式 release 仍为 `v2.0.0`。HF Variables 不会自动变成 Docker build args。
+发布态 build pin 不在 HF Variables 或 HFS v2 manifest 中配置，而是直接提交在 `Dockerfile ARG DEERFLOW_REF`，并由 `Makefile` 保持相同完整 SHA。当前 pin 为 `3b77a7401b549fa6da4c8e1f8c2c0081d56e3d7a`。HF Variables 不会自动变成 Docker build args。
 
 ## 5. Secrets
 
@@ -127,7 +129,7 @@ OPENROUTER_API_KEY=...
 
 1. 检查 `/data/deer-flow` 是否可写，不可写则退回 `/tmp/deer-flow`。
 2. 导出 DeerFlow 路径、Gateway URL、provider key 占位值。
-3. 在 `DEER_FLOW_MANAGED_CONFIG=true` 时同步 `hfs/config/config.hfs.yaml` 到 `DEER_FLOW_CONFIG_PATH`。
+3. 在 `DEER_FLOW_MANAGED_CONFIG=true` 时，**每次启动**都以 `hfs/config/config.hfs.yaml` 覆盖 `DEER_FLOW_CONFIG_PATH`；这是 wrapper-managed config，本轮不使用 `seed_file` 或 mount config。
 4. 创建 `extensions_config.json`。
 5. 在未提供 `AUTH_JWT_SECRET` / `DEER_FLOW_INTERNAL_AUTH_TOKEN` 时生成临时或持久 secret；旧 `BETTER_AUTH_SECRET` 只作 JWT secret 迁移输入。
 6. 启动 supervisor。
@@ -140,7 +142,9 @@ https://blueskyxn-deerflow-all-in-one-hfs.hf.space/setup
 
 创建第一个管理员账号后进入 workspace。
 
-## 8. 验收命令
+## 8. 后续发布门禁：远端对账、重建与 smoke
+
+完成提交和远端构建后，先确认 HFS 账本分类与实际 Variables/Secrets 一致，再确认 runtime SHA 已对齐，最后执行 smoke。以下命令是后续门禁，不属于本轮本地迁移操作。
 
 公开端点：
 
