@@ -471,13 +471,13 @@ def persistence_payload() -> dict[str, Any]:
     database_dir = Path(env("DEER_FLOW_DB_DIR", str(home / "data")))
     required_checks = [
         file_check("home", str(home)),
-        file_check("logs", str(home / "logs")),
-        file_check("run", str(home / "run")),
         file_check("database_dir", str(database_dir)),
         file_check("database", str(database_dir / "deerflow.db")),
         file_check("persistence_probe", str(home / ".hfs-persistence-probe")),
     ]
     observed_paths = [
+        file_check("logs", str(home / "logs")),
+        file_check("run", str(home / "run")),
         file_check("users", str(home / "users")),
         file_check("legacy_threads", str(home / "threads")),
         file_check("legacy_uploads", str(home / "uploads")),
