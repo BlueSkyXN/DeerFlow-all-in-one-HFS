@@ -13,10 +13,12 @@ for path in (
     "hfs/services/admin_service.py",
     "scripts/service-contract-test.py",
     "scripts/export_hfs_space_bundle.py",
+    "scripts/test_hfs_exporter.py",
 ):
     compile(Path(path).read_text(encoding="utf-8"), path, "exec")
 PY
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/service-contract-test.py
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.test_hfs_exporter
 
 python3 - <<'PY'
 from __future__ import annotations
@@ -258,6 +260,11 @@ require("huggingface_hub==${HF_CLI_VERSION}" in formal_workflow, "formal workflo
 require("click==${HF_CLI_CLICK_VERSION}" in formal_workflow, "formal workflow must install the direct module CLI dependency")
 require("python3 -m huggingface_hub.cli.hf --help" in formal_workflow, "formal workflow must exercise the module CLI")
 require("python3 -m huggingface_hub.cli.hf upload --help" in formal_workflow, "formal workflow must exercise the upload command")
+require("deployed_revision = info.sha" in formal_workflow, "formal workflow must capture the immutable uploaded Space revision")
+require("revision=deployed_revision" in formal_workflow, "formal workflow must read back the immutable uploaded revision")
+require('runtime.stage == "RUNNING"' in formal_workflow, "formal workflow must wait for a running canonical Space")
+require('runtime.raw.get("sha") == deployed_revision' in formal_workflow, "formal workflow must bind runtime to the uploaded revision")
+require('runtime.stage in {"BUILD_ERROR", "RUNTIME_ERROR"}' in formal_workflow, "formal workflow must fail closed on Space build and runtime errors")
 
 require("/home/user/app/hfs/config/config.hfs.yaml" in entrypoint, "entrypoint must read managed config from hfs/config")
 require("/home/user/app/hfs/config/extensions_config.json" in entrypoint, "entrypoint must read extensions config from hfs/config")
