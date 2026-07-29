@@ -16,6 +16,7 @@ for path in (
     compile(Path(path).read_text(encoding="utf-8"), path, "exec")
 PY
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/service-contract-test.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_hf_space_sync.py
 
 python3 - <<'PY'
 from __future__ import annotations
