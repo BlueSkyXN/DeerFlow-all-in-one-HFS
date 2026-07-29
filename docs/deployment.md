@@ -14,7 +14,7 @@ sdk: docker
 app_port: 7860
 ```
 
-HF 会用根目录 `Dockerfile` 构建镜像。根 `hfs-dev.toml` 是 HFS v2 语义登记：本仓是 `port` / `source` / `commit`，仅登记环境变量键名；它不是部署 manifest、seed file 或 build pin 的副本。`DEERFLOW_REF` 的完整 SHA 只由 `Dockerfile` 和 `Makefile` 维护。
+HF 会用根目录 `Dockerfile` 构建镜像。根 `hfs-dev.toml` 是 HFS v2.1 Preview 语义登记：本仓是 `preview` / `primary` / `port` / `source` / `commit`，仅登记环境变量键名；它不是部署 manifest、seed file 或 build pin 的副本。`DEERFLOW_REF` 的完整 SHA 只由 `Dockerfile` 和 `Makefile` 维护。
 
 ## 2. 推送代码
 
@@ -40,7 +40,7 @@ git push hf main
 
 ## 4. Variables
 
-先在本机从 `.env.example` 创建被忽略的 `.env`，将其作为 HFS 同步值账本；公开模板和 `hfs-dev.toml` 只含键名。`.env.local` 仅保留给本地 Docker 运行，不能作为 HFS 同步事实源。远端同步、对账和写入不属于本轮改动。
+先在本机从 `.env.example` 创建被忽略的明文 `.env`，将其作为 HFS 同步值账本；公开模板和 `hfs-dev.toml` 只含键名。Secret 必须先写入本地账本，再作为部署副本写入 Space。`.env.local` 仅保留给本地 Docker 运行，不能作为 HFS 同步事实源。Preview 可直接更新 canonical Space 并执行 readback；candidate 仅是高风险可选验证。
 
 在后续发布门禁中，按该账本在 Space Settings -> Variables 对账：
 

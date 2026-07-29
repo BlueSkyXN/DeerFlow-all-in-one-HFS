@@ -1,9 +1,13 @@
-standard = "2.0"
+standard = "2.1"
 project = "DeerFlow-all-in-one-HFS"
 space = "BlueSkyXN/DeerFlow-all-in-one-HFS"
 sovereignty = "port"
 lane = "source"
 version_source = "commit"
+project_class = "preview"
+target_role = "primary"
+env_file = ".env"
+secret_files = []
 
 # HFS synchronization reads values from the ignored .env ledger. This manifest
 # registers names only; Dockerfile and Makefile remain the build-pin source.

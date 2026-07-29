@@ -18,9 +18,9 @@ license: gpl-3.0
 
 本仓库按 HFS `Pattern A` 对齐：它维护的是上游 DeerFlow 在 HFS 上的可运行交付包，而不是 DeerFlow 产品源码本身。因此仓库根目录必须同时作为 Hugging Face Space root 和 GitHub 维护根，不能再套一层 `cloud/hfs/`。
 
-[hfs-dev.toml](hfs-dev.toml) 使用 HFS v2：`sovereignty="port"`、`lane="source"`、`version_source="commit"`。它只登记项目、Space 和环境变量键名，不声明旧 manifest schema、release pin、seed file 或 mount config。Docker build 阶段仍通过 `DEERFLOW_REPO` / `DEERFLOW_REF` shallow-fetch 上游源码；发布 pin 只由 `Dockerfile` 和 `Makefile` 的相同完整 SHA 直接维护，manifest 不重复 pin。当前默认 pin 为 `3b77a7401b549fa6da4c8e1f8c2c0081d56e3d7a`；只有本地临时开发才应显式覆盖 `DEERFLOW_REF=main`。
+[hfs-dev.toml](hfs-dev.toml) 使用 HFS v2.1：`project_class="preview"`、`target_role="primary"`、`sovereignty="port"`、`lane="source"`、`version_source="commit"`。它只登记项目、Space 和环境变量键名，不声明旧 manifest schema、release pin、seed file 或 mount config。Docker build 阶段仍通过 `DEERFLOW_REPO` / `DEERFLOW_REF` shallow-fetch 上游源码；发布 pin 只由 `Dockerfile` 和 `Makefile` 的相同完整 SHA 直接维护，manifest 不重复 pin。当前默认 pin 为 `3b77a7401b549fa6da4c8e1f8c2c0081d56e3d7a`；只有本地临时开发才应显式覆盖 `DEERFLOW_REF=main`。
 
-HFS 同步的本地值账本是被忽略的 `.env`，公开的 `.env.example` 只提供键名。`Makefile` 的默认 `ENV_FILE` 仍是 `.env.local`，以保持既有本地 Docker 运行兼容；本地开发可继续显式维护和使用 `.env.local`，不要把它当成 HFS 同步输入。
+HFS 同步的本地明文值账本是被忽略的 `.env`，公开的 `.env.example` 只提供键名。任何 Secret 都必须先写入 `.env`，Space Secret 只是无法反向读回值的部署副本。Preview 可直接修改 canonical Space；candidate 仅作高风险可选验证并使用 `local/hfs-targets/candidate.env`。`Makefile` 的默认 `ENV_FILE` 仍是 `.env.local`，以保持既有本地 Docker 运行兼容；本地开发可继续显式维护和使用 `.env.local`，不要把它当成 HFS 同步输入。
 
 当前线上目标：
 

@@ -93,14 +93,15 @@ cp .env.example .env
 `.env` 只供后续 HFS 同步使用；`hfs-dev.toml` 只登记 `local_only`、`secrets`、`variables` 三类键名，不含值。`local_only`（包括 build args、smoke aliases 和内部覆盖项）不得同步为 Space 设置。
 
 本项目保持上游 YAML/JSON 与 env-driven 配置，不创建无意义的 `config.toml`，也没有需要分发的
-seed。Settings 必须从忽略的本地 `.env` 事实源执行 `diff → push → readback`；candidate 和
-production 使用独立 manifest，不能临时覆盖同一个 `space`：
+seed。Settings 必须从忽略的本地明文 `.env` 事实源执行 `diff → push → readback`；Preview 日常变更可以直接更新 canonical Space，Secret 必须本地先行：
 
 ```bash
-python3 scripts/hf_space_sync.py diff --manifest hfs-dev.candidate.toml --env-file .env
-python3 scripts/hf_space_sync.py push --manifest hfs-dev.candidate.toml --env-file .env
-python3 scripts/hf_space_sync.py diff --manifest hfs-dev.candidate.toml --env-file .env
+python3 scripts/hf_space_sync.py diff --manifest hfs-dev.toml --env-file .env
+python3 scripts/hf_space_sync.py push --manifest hfs-dev.toml --env-file .env
+python3 scripts/hf_space_sync.py diff --manifest hfs-dev.toml --env-file .env
 ```
+
+`hfs-dev.candidate.toml` 使用独立账本 `local/hfs-targets/candidate.env`，只在高风险验证需要时显式选择，不是 Preview 常规前置。
 
 最后一次 `diff` 是 readback：Secret 只核名称，Variable 核值。清理窗口获批前不得使用
 `--prune --yes`。旧 Ruijie wrapper 仅作为只读回退材料保留；取得 7 天无活动引用证据后，

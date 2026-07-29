@@ -144,25 +144,32 @@ require("webpackMemoryOptimizations: true" in next_config, "HFS Next config must
 require("ignoreBuildErrors: true" in next_config, "HFS Next config must skip only the duplicate in-build typecheck")
 require("--build-arg DEERFLOW_REF=$(DEERFLOW_REF)" in makefile, "Makefile build must pass DEERFLOW_REF")
 expected_manifest = {
-    "standard": "2.0",
+    "standard": "2.1",
     "project": "DeerFlow-all-in-one-HFS",
     "space": "BlueSkyXN/DeerFlow-all-in-one-HFS",
     "sovereignty": "port",
     "lane": "source",
     "version_source": "commit",
+    "project_class": "preview",
+    "target_role": "primary",
+    "env_file": ".env",
+    "secret_files": [],
 }
 for key, value in expected_manifest.items():
     require(manifest_data.get(key) == value, f"hfs-dev.toml {key} must be {value!r}")
 
-require(
-    candidate_manifest_data.get("space") == "BlueSkyXN/DeerFlow-all-in-one-HFS-v2-candidate",
-    "candidate manifest must select the fixed private candidate Space",
-)
+candidate_expected = {
+    "space": "BlueSkyXN/DeerFlow-all-in-one-HFS-v2-candidate",
+    "target_role": "candidate",
+    "env_file": "local/hfs-targets/candidate.env",
+}
+for key, value in candidate_expected.items():
+    require(candidate_manifest_data.get(key) == value, f"candidate manifest {key} must be {value!r}")
 for key in sorted(set(manifest_data) | set(candidate_manifest_data)):
-    if key != "space":
+    if key not in {"space", "target_role", "env_file"}:
         require(
             manifest_data.get(key) == candidate_manifest_data.get(key),
-            f"candidate manifest differs from production at {key}",
+            f"candidate manifest differs from canonical preview at {key}",
         )
 
 classification_fields = ("local_only", "secrets", "variables")
