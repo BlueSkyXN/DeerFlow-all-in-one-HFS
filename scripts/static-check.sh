@@ -263,7 +263,7 @@ require("PUBLISH_FORMAL" in formal_workflow, "formal workflow must require exact
 require("export_hfs_space_bundle.py export" in formal_workflow, "formal workflow must use the strict exporter")
 require('--source-commit "$SOURCE_REF"' in formal_workflow, "formal workflow must authorize every verifier against the locked source commit")
 require('HF_CLI_VERSION: "1.5.0"' in formal_workflow, "formal workflow must pin huggingface_hub 1.5.0")
-require('HF_CLI_CLICK_VERSION: "8.3.1"' in formal_workflow, "formal workflow must pin click 8.3.1")
+require('HF_CLI_CLICK_VERSION: "8.3.3"' in formal_workflow, "formal workflow must pin click 8.3.3")
 require("huggingface_hub==${HF_CLI_VERSION}" in formal_workflow, "formal workflow must install the pinned Hugging Face client")
 require("click==${HF_CLI_CLICK_VERSION}" in formal_workflow, "formal workflow must install the direct module CLI dependency")
 require("python3 -m huggingface_hub.cli.hf --help" in formal_workflow, "formal workflow must exercise the module CLI")
