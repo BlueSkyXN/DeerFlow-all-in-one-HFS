@@ -12,6 +12,7 @@ for path in (
     "hfs/services/ops_service.py",
     "hfs/services/admin_service.py",
     "scripts/service-contract-test.py",
+    "scripts/export_hfs_space_bundle.py",
 ):
     compile(Path(path).read_text(encoding="utf-8"), path, "exec")
 PY
@@ -67,6 +68,8 @@ required_paths = [
     "scripts/smoke-test.sh",
     "scripts/service-contract-test.py",
     "scripts/hf_space_sync.py",
+    "hfs-space-bundle.json",
+    ".github/workflows/deploy-hfs-formal.yml",
     "docs/architecture.md",
     "docs/configuration.md",
     "docs/deployment.md",
@@ -105,6 +108,7 @@ dockerfile = read("Dockerfile")
 nginx = read("hfs/nginx/nginx.conf")
 healthcheck = read("hfs/bin/healthcheck.sh")
 smoke = read("scripts/smoke-test.sh")
+formal_workflow = read(".github/workflows/deploy-hfs-formal.yml")
 entrypoint = read("hfs/bin/entrypoint.sh")
 supervisor = read("hfs/supervisor/supervisord.conf")
 ops = read("hfs/services/ops_service.py")
@@ -165,7 +169,7 @@ for key in sorted(set(manifest_data) | set(candidate_manifest_data)):
             f"candidate manifest differs from production at {key}",
         )
 
-classification_fields = ("local_only", "secrets", "variables")
+classification_fields = ("local_only", "secrets", "optional_secrets", "variables")
 allowed_manifest_fields = set(expected_manifest) | set(classification_fields)
 require(
     set(manifest_data) == allowed_manifest_fields,
@@ -189,7 +193,14 @@ for field in classification_fields:
     require(len(keys) == len(set(keys)), f"hfs-dev.toml {field} contains duplicate environment keys")
     classified_keys[field] = keys
 
-for left, right in (("local_only", "secrets"), ("local_only", "variables"), ("secrets", "variables")):
+for left, right in (
+    ("local_only", "secrets"),
+    ("local_only", "optional_secrets"),
+    ("local_only", "variables"),
+    ("secrets", "optional_secrets"),
+    ("secrets", "variables"),
+    ("optional_secrets", "variables"),
+):
     overlap = sorted(set(classified_keys[left]) & set(classified_keys[right]))
     require(not overlap, f"hfs-dev.toml {left} and {right} must be mutually exclusive: {overlap}")
 
@@ -203,7 +214,10 @@ for line_number, line in enumerate(read(".env.example").splitlines(), start=1):
     env_example_keys.append(match.group(1))
 require(len(env_example_keys) == len(set(env_example_keys)), ".env.example must not repeat keys")
 require(
-    set(env_example_keys) == set(classified_keys["secrets"]) | set(classified_keys["variables"]),
+    set(env_example_keys)
+    == set(classified_keys["secrets"])
+    | set(classified_keys["optional_secrets"])
+    | set(classified_keys["variables"]),
     ".env.example must contain every HFS secret and variable key, and no local-only key",
 )
 gitignore = read(".gitignore")
@@ -234,6 +248,10 @@ require("check /healthz 200" in smoke, "smoke must check public HFS healthz")
 require("/_ops/system" in smoke and "/_ops/metrics" in smoke and "/_ops/errors" in smoke, "smoke must cover protected ops diagnostics when token is configured")
 require("/_admin/api/actions/run-health-checks" in smoke, "smoke must cover admin read-only action when admin is enabled")
 require("EXPECTED_DEERFLOW_REF" in smoke and "upstream SHA" in smoke, "smoke must verify the deployed upstream pin")
+require("FORMAL_SPACE: BlueSkyXN/DeerFlow-all-in-one-HFS" in formal_workflow, "formal workflow must hard-code the canonical Space")
+require("environment: hfs-production" in formal_workflow, "formal workflow must use the scoped production environment")
+require("PUBLISH_FORMAL" in formal_workflow, "formal workflow must require exact upload confirmation")
+require("export_hfs_space_bundle.py export" in formal_workflow, "formal workflow must use the strict exporter")
 
 require("/home/user/app/hfs/config/config.hfs.yaml" in entrypoint, "entrypoint must read managed config from hfs/config")
 require("/home/user/app/hfs/config/extensions_config.json" in entrypoint, "entrypoint must read extensions config from hfs/config")
