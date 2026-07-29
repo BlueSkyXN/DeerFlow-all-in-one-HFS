@@ -286,12 +286,28 @@ def main() -> None:
                 3,
                 completed,
             )
+            shutil.rmtree(log_dir)
+            shutil.rmtree(runtime_home / "run")
+            status, _, payload = request(
+                ops_port, "/persistence", headers={"X-Ops-Token": "ops-secret"}
+            )
+            check("ops persistence", status, 200, completed)
+            persistence = json_body(payload)
+            check("ops persistence status", persistence["status"], "ok", completed)
+            observed_paths = {
+                item["name"]: item["status"]
+                for item in persistence["observed_paths"]
+            }
             check(
-                "ops persistence",
-                request(
-                    ops_port, "/persistence", headers={"X-Ops-Token": "ops-secret"}
-                )[0],
-                200,
+                "ops persistence observes missing logs",
+                observed_paths["logs"],
+                "error",
+                completed,
+            )
+            check(
+                "ops persistence observes missing run",
+                observed_paths["run"],
+                "error",
                 completed,
             )
 
