@@ -78,3 +78,7 @@ local_only = [
   "UV_EXTRAS",
   "UV_INDEX_URL",
 ]
+
+deviations = [
+  "business-image = UV_IMAGE is a version-pinned build-tool source and is not the DeerFlow business or runtime image",
+]

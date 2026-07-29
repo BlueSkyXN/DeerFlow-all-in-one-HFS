@@ -157,6 +157,9 @@ expected_manifest = {
     "lane": "source",
     "version_source": "commit",
 }
+expected_deviations = [
+    "business-image = UV_IMAGE is a version-pinned build-tool source and is not the DeerFlow business or runtime image"
+]
 for key, value in expected_manifest.items():
     require(manifest_data.get(key) == value, f"hfs-dev.toml {key} must be {value!r}")
 
@@ -172,10 +175,14 @@ for key in sorted(set(manifest_data) | set(candidate_manifest_data)):
         )
 
 classification_fields = ("local_only", "secrets", "optional_secrets", "variables")
-allowed_manifest_fields = set(expected_manifest) | set(classification_fields)
+allowed_manifest_fields = set(expected_manifest) | set(classification_fields) | {"deviations"}
 require(
     set(manifest_data) == allowed_manifest_fields,
     "hfs-dev.toml must contain only HFS v2 fields and key classifications",
+)
+require(
+    manifest_data.get("deviations") == expected_deviations,
+    "hfs-dev.toml deviations must document only the reviewed build-tool image",
 )
 require(
     {"HF_TOKEN", "GH_TOKEN"}.issubset(set(manifest_data["local_only"])),
