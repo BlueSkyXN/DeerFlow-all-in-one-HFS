@@ -252,6 +252,12 @@ require("FORMAL_SPACE: BlueSkyXN/DeerFlow-all-in-one-HFS" in formal_workflow, "f
 require("environment: hfs-production" in formal_workflow, "formal workflow must use the scoped production environment")
 require("PUBLISH_FORMAL" in formal_workflow, "formal workflow must require exact upload confirmation")
 require("export_hfs_space_bundle.py export" in formal_workflow, "formal workflow must use the strict exporter")
+require('HF_CLI_VERSION: "1.5.0"' in formal_workflow, "formal workflow must pin huggingface_hub 1.5.0")
+require('HF_CLI_CLICK_VERSION: "8.3.1"' in formal_workflow, "formal workflow must pin click 8.3.1")
+require("huggingface_hub==${HF_CLI_VERSION}" in formal_workflow, "formal workflow must install the pinned Hugging Face client")
+require("click==${HF_CLI_CLICK_VERSION}" in formal_workflow, "formal workflow must install the direct module CLI dependency")
+require("python3 -m huggingface_hub.cli.hf --help" in formal_workflow, "formal workflow must exercise the module CLI")
+require("python3 -m huggingface_hub.cli.hf upload --help" in formal_workflow, "formal workflow must exercise the upload command")
 
 require("/home/user/app/hfs/config/config.hfs.yaml" in entrypoint, "entrypoint must read managed config from hfs/config")
 require("/home/user/app/hfs/config/extensions_config.json" in entrypoint, "entrypoint must read extensions config from hfs/config")
