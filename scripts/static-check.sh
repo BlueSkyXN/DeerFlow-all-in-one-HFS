@@ -12,11 +12,14 @@ for path in (
     "hfs/services/ops_service.py",
     "hfs/services/admin_service.py",
     "scripts/service-contract-test.py",
+    "scripts/export_hfs_space_bundle.py",
+    "scripts/test_hfs_exporter.py",
 ):
     compile(Path(path).read_text(encoding="utf-8"), path, "exec")
 PY
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/service-contract-test.py
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_hf_space_sync.py
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.test_hfs_exporter
 
 python3 - <<'PY'
 from __future__ import annotations
@@ -68,6 +71,8 @@ required_paths = [
     "scripts/smoke-test.sh",
     "scripts/service-contract-test.py",
     "scripts/hf_space_sync.py",
+    "hfs-space-bundle.json",
+    ".github/workflows/deploy-hfs-formal.yml",
     "docs/architecture.md",
     "docs/configuration.md",
     "docs/deployment.md",
@@ -106,6 +111,7 @@ dockerfile = read("Dockerfile")
 nginx = read("hfs/nginx/nginx.conf")
 healthcheck = read("hfs/bin/healthcheck.sh")
 smoke = read("scripts/smoke-test.sh")
+formal_workflow = read(".github/workflows/deploy-hfs-formal.yml")
 entrypoint = read("hfs/bin/entrypoint.sh")
 supervisor = read("hfs/supervisor/supervisord.conf")
 ops = read("hfs/services/ops_service.py")
@@ -153,9 +159,14 @@ expected_manifest = {
     "version_source": "commit",
     "project_class": "preview",
     "target_role": "primary",
+    "space_visibility": "protected",
+    "bucket_visibility": "private",
     "env_file": ".env",
     "secret_files": [],
 }
+expected_deviations = [
+    "business-image = UV_IMAGE is a version-pinned build-tool source and is not the DeerFlow business or runtime image"
+]
 for key, value in expected_manifest.items():
     require(manifest_data.get(key) == value, f"hfs-dev.toml {key} must be {value!r}")
 
@@ -173,11 +184,15 @@ for key in sorted(set(manifest_data) | set(candidate_manifest_data)):
             f"candidate manifest differs from canonical preview at {key}",
         )
 
-classification_fields = ("local_only", "secrets", "variables")
-allowed_manifest_fields = set(expected_manifest) | set(classification_fields)
+classification_fields = ("local_only", "secrets", "optional_secrets", "variables")
+allowed_manifest_fields = set(expected_manifest) | set(classification_fields) | {"deviations"}
 require(
     set(manifest_data) == allowed_manifest_fields,
     "hfs-dev.toml must contain only HFS v2 fields and key classifications",
+)
+require(
+    manifest_data.get("deviations") == expected_deviations,
+    "hfs-dev.toml deviations must document only the reviewed build-tool image",
 )
 require(
     {"HF_TOKEN", "GH_TOKEN"}.issubset(set(manifest_data["local_only"])),
@@ -197,7 +212,14 @@ for field in classification_fields:
     require(len(keys) == len(set(keys)), f"hfs-dev.toml {field} contains duplicate environment keys")
     classified_keys[field] = keys
 
-for left, right in (("local_only", "secrets"), ("local_only", "variables"), ("secrets", "variables")):
+for left, right in (
+    ("local_only", "secrets"),
+    ("local_only", "optional_secrets"),
+    ("local_only", "variables"),
+    ("secrets", "optional_secrets"),
+    ("secrets", "variables"),
+    ("optional_secrets", "variables"),
+):
     overlap = sorted(set(classified_keys[left]) & set(classified_keys[right]))
     require(not overlap, f"hfs-dev.toml {left} and {right} must be mutually exclusive: {overlap}")
 
@@ -211,7 +233,10 @@ for line_number, line in enumerate(read(".env.example").splitlines(), start=1):
     env_example_keys.append(match.group(1))
 require(len(env_example_keys) == len(set(env_example_keys)), ".env.example must not repeat keys")
 require(
-    set(env_example_keys) == set(classified_keys["secrets"]) | set(classified_keys["variables"]),
+    set(env_example_keys)
+    == set(classified_keys["secrets"])
+    | set(classified_keys["optional_secrets"])
+    | set(classified_keys["variables"]),
     ".env.example must contain every HFS secret and variable key, and no local-only key",
 )
 gitignore = read(".gitignore")
@@ -242,6 +267,23 @@ require("check /healthz 200" in smoke, "smoke must check public HFS healthz")
 require("/_ops/system" in smoke and "/_ops/metrics" in smoke and "/_ops/errors" in smoke, "smoke must cover protected ops diagnostics when token is configured")
 require("/_admin/api/actions/run-health-checks" in smoke, "smoke must cover admin read-only action when admin is enabled")
 require("EXPECTED_DEERFLOW_REF" in smoke and "upstream SHA" in smoke, "smoke must verify the deployed upstream pin")
+require("FORMAL_SPACE: BlueSkyXN/DeerFlow-all-in-one-HFS" in formal_workflow, "formal workflow must hard-code the canonical Space")
+require("environment: hfs-production" in formal_workflow, "formal workflow must use the scoped production environment")
+require("PUBLISH_FORMAL" in formal_workflow, "formal workflow must require exact upload confirmation")
+require("export_hfs_space_bundle.py export" in formal_workflow, "formal workflow must use the strict exporter")
+require('--source-commit "$SOURCE_REF"' in formal_workflow, "formal workflow must authorize every verifier against the locked source commit")
+require('HF_CLI_VERSION: "1.25.1"' in formal_workflow, "formal workflow must pin Protected-compatible huggingface_hub 1.25.1")
+require('HF_CLI_CLICK_VERSION: "8.4.2"' in formal_workflow, "formal workflow must pin click 8.4.2")
+require("huggingface_hub==${HF_CLI_VERSION}" in formal_workflow, "formal workflow must install the pinned Hugging Face client")
+require("click==${HF_CLI_CLICK_VERSION}" in formal_workflow, "formal workflow must install the direct module CLI dependency")
+require("python3 -m huggingface_hub.cli.hf --help" in formal_workflow, "formal workflow must exercise the module CLI")
+require("python3 -m huggingface_hub.cli.hf upload --help" in formal_workflow, "formal workflow must exercise the upload command")
+require("python3 -m huggingface_hub.cli.hf repos settings --help | grep -- --protected" in formal_workflow, "formal workflow must verify Protected visibility support")
+require("deployed_revision = info.sha" in formal_workflow, "formal workflow must capture the immutable uploaded Space revision")
+require("revision=deployed_revision" in formal_workflow, "formal workflow must read back the immutable uploaded revision")
+require('runtime.stage == "RUNNING"' in formal_workflow, "formal workflow must wait for a running canonical Space")
+require('runtime.raw.get("sha") == deployed_revision' in formal_workflow, "formal workflow must bind runtime to the uploaded revision")
+require('runtime.stage in {"BUILD_ERROR", "RUNTIME_ERROR"}' in formal_workflow, "formal workflow must fail closed on Space build and runtime errors")
 
 require("/home/user/app/hfs/config/config.hfs.yaml" in entrypoint, "entrypoint must read managed config from hfs/config")
 require("/home/user/app/hfs/config/extensions_config.json" in entrypoint, "entrypoint must read extensions config from hfs/config")

@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "wrapper_repository": "https://github.com/BlueSkyXN/DeerFlow-all-in-one-HFS",
+  "profiles": {
+    "formal": {
+      "manifest": "hfs-dev.toml",
+      "space": "BlueSkyXN/DeerFlow-all-in-one-HFS"
+    }
+  },
+  "source_to_bundle": {
+    ".dockerignore": ".dockerignore",
+    ".gitattributes": ".gitattributes",
+    "Dockerfile": "Dockerfile",
+    "LICENSE": "LICENSE",
+    "README.md": "README.md",
+    "docs/architecture.md": "docs/architecture.md",
+    "docs/configuration.md": "docs/configuration.md",
+    "docs/deployment.md": "docs/deployment.md",
+    "docs/development.md": "docs/development.md",
+    "docs/ops-runbook.md": "docs/ops-runbook.md",
+    "docs/security.md": "docs/security.md",
+    "docs/upstream-mapping.md": "docs/upstream-mapping.md",
+    "examples/hf-space-secrets.example.env": "examples/hf-space-secrets.example.env",
+    "examples/hf-space-variables.example.env": "examples/hf-space-variables.example.env",
+    "examples/local.env.example": "examples/local.env.example",
+    "hfs-dev.toml": "hfs-dev.toml",
+    "hfs/AGENTS.md": "hfs/AGENTS.md",
+    "hfs/README.md": "hfs/README.md",
+    "hfs/bin/AGENTS.md": "hfs/bin/AGENTS.md",
+    "hfs/bin/entrypoint.sh": "hfs/bin/entrypoint.sh",
+    "hfs/bin/healthcheck.sh": "hfs/bin/healthcheck.sh",
+    "hfs/config/AGENTS.md": "hfs/config/AGENTS.md",
+    "hfs/config/config.hfs.yaml": "hfs/config/config.hfs.yaml",
+    "hfs/config/extensions_config.json": "hfs/config/extensions_config.json",
+    "hfs/config/next.hfs.config.js": "hfs/config/next.hfs.config.js",
+    "hfs/nginx/AGENTS.md": "hfs/nginx/AGENTS.md",
+    "hfs/nginx/nginx.conf": "hfs/nginx/nginx.conf",
+    "hfs/services/AGENTS.md": "hfs/services/AGENTS.md",
+    "hfs/services/admin_service.py": "hfs/services/admin_service.py",
+    "hfs/services/ops_service.py": "hfs/services/ops_service.py",
+    "hfs/supervisor/AGENTS.md": "hfs/supervisor/AGENTS.md",
+    "hfs/supervisor/supervisord.conf": "hfs/supervisor/supervisord.conf",
+    "scripts/hf_space_sync.py": "scripts/hf_space_sync.py",
+    "scripts/service-contract-test.py": "scripts/service-contract-test.py",
+    "scripts/smoke-test.sh": "scripts/smoke-test.sh",
+    "scripts/static-check.sh": "scripts/static-check.sh"
+  }
+}

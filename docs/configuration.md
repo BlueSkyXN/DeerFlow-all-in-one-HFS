@@ -90,7 +90,7 @@ supports_vision: false
 cp .env.example .env
 ```
 
-`.env` 只供后续 HFS 同步使用；`hfs-dev.toml` 只登记 `local_only`、`secrets`、`variables` 三类键名，不含值。`local_only`（包括 build args、smoke aliases 和内部覆盖项）不得同步为 Space 设置。
+`.env` 只供后续 HFS 同步使用；`hfs-dev.toml` 只登记 `local_only`、required `secrets`、`optional_secrets`、`variables` 四类键名，不含值。clean non-paid profile 只要求 auth/internal/ops 三个内部 Secret；admin、legacy migration、model 与 search provider key 保持 optional 且不配置。`local_only`（包括 build args、smoke aliases 和内部覆盖项）不得同步为 Space 设置。
 
 本项目保持上游 YAML/JSON 与 env-driven 配置，不创建无意义的 `config.toml`，也没有需要分发的
 seed。Settings 必须从忽略的本地明文 `.env` 事实源执行 `diff → push → readback`；Preview 日常变更可以直接更新 canonical Space，Secret 必须本地先行：

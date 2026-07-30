@@ -6,6 +6,8 @@ lane = "source"
 version_source = "commit"
 project_class = "preview"
 target_role = "primary"
+space_visibility = "protected"
+bucket_visibility = "private"
 env_file = ".env"
 secret_files = []
 
@@ -13,10 +15,12 @@ secret_files = []
 # registers names only; Dockerfile and Makefile remain the build-pin source.
 secrets = [
   "AUTH_JWT_SECRET",
-  "BETTER_AUTH_SECRET",
-  "DEER_FLOW_ADMIN_TOKEN",
   "DEER_FLOW_INTERNAL_AUTH_TOKEN",
   "DEER_FLOW_OPS_TOKEN",
+]
+optional_secrets = [
+  "BETTER_AUTH_SECRET",
+  "DEER_FLOW_ADMIN_TOKEN",
   "EXA_API_KEY",
   "FIRECRAWL_API_KEY",
   "INFOQUEST_API_KEY",
@@ -79,4 +83,8 @@ local_only = [
   "SMOKE_BASE_URL",
   "UV_EXTRAS",
   "UV_INDEX_URL",
+]
+
+deviations = [
+  "business-image = UV_IMAGE is a version-pinned build-tool source and is not the DeerFlow business or runtime image",
 ]
