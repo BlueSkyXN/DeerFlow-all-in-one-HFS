@@ -18,7 +18,7 @@ license: gpl-3.0
 
 本仓库按 HFS `Pattern A` 对齐：它维护的是上游 DeerFlow 在 HFS 上的可运行交付包，而不是 DeerFlow 产品源码本身。因此仓库根目录必须同时作为 Hugging Face Space root 和 GitHub 维护根，不能再套一层 `cloud/hfs/`。
 
-[hfs-dev.toml](hfs-dev.toml) 使用 HFS v2：`sovereignty="port"`、`lane="source"`、`version_source="commit"`。它只登记项目、Space 和环境变量键名，不声明旧 manifest schema、release pin、seed file 或 mount config。Docker build 阶段仍通过 `DEERFLOW_REPO` / `DEERFLOW_REF` shallow-fetch 上游源码；发布 pin 只由 `Dockerfile` 和 `Makefile` 的相同完整 SHA 直接维护，manifest 不重复 pin。当前默认 pin 为 `3b77a7401b549fa6da4c8e1f8c2c0081d56e3d7a`；只有本地临时开发才应显式覆盖 `DEERFLOW_REF=main`。
+[hfs-dev.toml](hfs-dev.toml) 使用 HFS v2：`sovereignty="port"`、`lane="source"`、`version_source="commit"`。它只登记项目、Space 和环境变量键名，不声明旧 manifest schema、release pin、seed file 或 mount config。Docker build 阶段仍通过 `DEERFLOW_REPO` / `DEERFLOW_REF` shallow-fetch 上游源码；发布 pin 只由 `Dockerfile` 和 `Makefile` 的相同完整 SHA 直接维护，manifest 不重复 pin。当前默认 pin 为 `b47c7838a57732c598ade701d14d175ee5adc518`，对应 2026-08-19 上游 `main` 的未发布 `2.1.0` 实验版源码；最新正式 Release 仍为 `v2.0.0`。只有本地临时开发才应显式覆盖 `DEERFLOW_REF=main`。
 
 HFS 同步的本地值账本是被忽略的 `.env`，公开的 `.env.example` 只提供键名。`Makefile` 的默认 `ENV_FILE` 仍是 `.env.local`，以保持既有本地 Docker 运行兼容；本地开发可继续显式维护和使用 `.env.local`，不要把它当成 HFS 同步输入。
 
@@ -41,7 +41,7 @@ HFS 同步的本地值账本是被忽略的 `.env`，公开的 `.env.example` �
 - Gateway 使用 `uvicorn app.gateway.app:app --host 127.0.0.1 --port 8001`。
 - 默认模型为 Cloudflare AI Gateway OpenAI-compatible endpoint 上的 `longcat-flash-thinking-2601`。
 - `DEER_FLOW_MANAGED_CONFIG=true` 时，entrypoint **每次启动**都会用 `hfs/config/config.hfs.yaml` 覆盖运行态 `/data/deer-flow/config.yaml`，避免旧持久化配置继续生效。本轮不登记 `seed_file` 或 mount config，也不修改该 wrapper-managed config 行为。
-- managed config 已对齐上游 `config_version: 29`，统一 SQLite 数据库显式落在 `$DEER_FLOW_DB_DIR`，默认 `/data/deer-flow/data/deerflow.db`，并关闭公网本地自助注册。
+- managed config 已对齐上游 `config_version: 34`，统一 SQLite 数据库显式落在 `$DEER_FLOW_DB_DIR`，默认 `/data/deer-flow/data/deerflow.db`，并关闭公网本地自助注册。
 - `/setup` 初始化管理员流程、登录态 `/api/models`、真实 chat 调用和 token usage 已通过浏览器验证。
 
 ## 进程与端口

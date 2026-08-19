@@ -91,7 +91,7 @@ X-Forwarded-Proto
 
 常见原因：
 
-- `uv sync` build 失败。
+- `uv sync --locked` build 失败。
 - 上游 DeerFlow config schema 变化。
 - `/data/deer-flow/config.yaml` 无效。
 - `DEER_FLOW_MANAGED_CONFIG=false` 时旧 config 仍在生效。
@@ -171,7 +171,7 @@ pnpm exec next build --webpack
 NPM_REGISTRY=https://registry.npmmirror.com
 ```
 
-## Build fails during `uv sync`
+## Build fails during `uv sync --locked`
 
 可设置：
 

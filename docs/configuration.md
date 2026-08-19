@@ -41,7 +41,7 @@
 
 ## Managed config 安全与兼容默认
 
-`hfs/config/config.hfs.yaml` 对齐上游 schema `config_version: 29`。HFS 显式固定 SQLite connection/checkpoint 默认、单节点 `agent_storage.backend: file`、当前 LLM retry 默认和 `authorization.enabled: false`。`auth.local.allow_registration: false` 会关闭公网自助注册，但不会阻止首次管理员通过 `/api/v1/auth/initialize` 初始化；`/api/v1/auth/setup-status` 应返回 `registration_enabled=false`。
+`hfs/config/config.hfs.yaml` 对齐上游 schema `config_version: 34`。HFS 显式固定 SQLite connection/checkpoint 默认、单节点 `agent_storage.backend: file`、当前 LLM retry 默认和 `authorization.enabled: false`；未显式写入的 v34 可选能力继续使用上游默认，不因此启用 plugins、远程 sandbox 或新的控制面。`auth.local.allow_registration: false` 会关闭公网自助注册，但不会阻止首次管理员通过 `/api/v1/auth/initialize` 初始化；`/api/v1/auth/setup-status` 应返回 `registration_enabled=false`。
 
 ## Hugging Face Secrets
 

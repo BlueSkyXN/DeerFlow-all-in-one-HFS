@@ -4,11 +4,11 @@
 
 ## 当前上游基线
 
-本仓当前验证目标是 `bytedance/deer-flow` commit `3b77a7401b549fa6da4c8e1f8c2c0081d56e3d7a`，其 backend/frontend package version 为 `2.1.0`。这是 2026-07-25 release cut 时最新 `main` 的 source candidate，不是正式 `v2.1.0` release；最新正式 release 仍为 `v2.0.0`。Dockerfile 通过 shallow `git fetch --depth 1 <sha>` 获取该提交，避免把 SHA 当 branch clone 后退化成完整仓库下载。
+本仓当前验证目标是 `bytedance/deer-flow` commit `b47c7838a57732c598ade701d14d175ee5adc518`，其 backend/frontend package version 为 `2.1.0`。这是 2026-08-19 22:06:16 +08:00 时上游 `main` 的最新实验版 source candidate，不是正式 `v2.1.0` Release；最新正式 Release 仍为 2026-06-25 发布的 `v2.0.0`。Dockerfile 通过 shallow `git fetch --depth 1 <sha>` 获取该提交，避免把 SHA 当 branch clone 后退化成完整仓库下载。
 
-从上一轮 pin `45865e9f3f5ac1cd05bfce9406b30ea8da864c52` 到当前基线，上游前进 134 commits。构建和启动主契约仍保持 Python 3.12、Node 22、pnpm 10.26.2、`uv sync`、Gateway `8001`、frontend `3000`，`AUTH_JWT_SECRET`、`DEER_FLOW_HOME` 和 SQLite 路径契约也未移除。最新三个提交分别修正 thread history reload 时的 subagent AI 过滤、embedded client 对 `ToolMessage.artifact` 的保留，以及 E2B sandbox 的并发 replica 容量限制。最后一项仅涉及 E2B provider；HFS 继续固定 `LocalSandboxProvider`、禁用 provisioner 且不暴露 `/api/sandboxes`，因此不需要新增 runtime config、环境变量、端口或安全例外。
+从上一轮 pin `3b77a7401b549fa6da4c8e1f8c2c0081d56e3d7a` 到当前基线，上游前进 220 commits。构建和启动主契约仍保持 Python 3.12、Node 22、pnpm 10.26.2、Gateway `8001`、frontend `3000`，`AUTH_JWT_SECRET`、`DEER_FLOW_HOME` 和 SQLite 路径契约也未移除；backend 构建工具已升级到 `uv@0.11.1`，依赖安装改为 `uv sync --locked`。新增能力覆盖 packaged plugins、持久化 MCP 长任务、多实例 scheduler、Memory backend、模型授权、Lark 集成和更多 sandbox provider，但 HFS 继续固定 `LocalSandboxProvider`、禁用 provisioner 且不暴露 `/api/sandboxes`，本轮不额外启用这些控制面。
 
-本轮 wrapper 必须跟进的是 `config_version: 29` 及其新增默认：SQLite connection/checkpoint 参数、单节点 agent storage、LLM retry/concurrency、authorization opt-in 和本地注册策略。HFS 显式关闭 `auth.local.allow_registration`，继续保持 LocalSandboxProvider、单 worker、host bash disabled 和 `/api/sandboxes=404`。上游 2.1.0 还包含 memory storage/schema、skills package boundary 和数据库 migrations `0005`–`0007`；本仓没有自定义 memory/skills 配置，但已有持久化 `/data` 的部署应在升级前备份并在升级后回读迁移结果。
+本轮 wrapper 将 managed config 提升到 `config_version: 34`，同时保留已经审查的 SQLite connection/checkpoint 参数、单节点 agent storage、LLM retry/concurrency、authorization opt-in 和本地注册策略。上游明确说明 `config_version` 只驱动过期警告，单独提升版本不要求把全部可选字段复制进精简配置；因此 HFS 不会因升级而自动启用 plugins、MCP 长任务、远程 Memory 或 sandbox。上游 2.1.0 已新增数据库 migrations `0008`–`0012`；已有持久化 `/data` 的部署应在升级前备份，并在升级后独立回读 migration、auth、thread/run 与 smoke 结果。
 
 ## 官方本地开发形态
 
