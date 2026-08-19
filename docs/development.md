@@ -38,7 +38,7 @@ Docker build 会先运行 `pnpm typecheck`，再加载 HFS Next config overlay�
 
 ```bash
 docker build \
-  --build-arg DEERFLOW_REF=3b77a7401b549fa6da4c8e1f8c2c0081d56e3d7a \
+  --build-arg DEERFLOW_REF=b47c7838a57732c598ade701d14d175ee5adc518 \
   -t deerflow-all-in-one-hfs .
 ```
 
@@ -107,7 +107,7 @@ make static-check
 - HFS v2 `port` / `source` / `commit` 登记、环境变量键名分类、互斥性和无 token 值。
 - `.env.example` 仅含 HFS Variables/Secrets 的键名；`.env`、`.env.local`、`config.toml` 和 `local/` 保持忽略。
 - `README.md` metadata、`Dockerfile EXPOSE`、Nginx listen、healthcheck、smoke 端口一致。
-- `hfs/` 内部路径、admin API/write actions 默认关闭、Dockerfile 与 Makefile 的 SHA pin、config v29、SQLite/JWT/persistence contract 一致。
+- `hfs/` 内部路径、admin API/write actions 默认关闭、Dockerfile 与 Makefile 的 SHA pin、uv/lockfile contract、config v34、SQLite/JWT/persistence contract 一致。
 
 ## Shell
 

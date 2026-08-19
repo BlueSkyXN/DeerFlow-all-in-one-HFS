@@ -1,12 +1,12 @@
 # syntax=docker/dockerfile:1.6
 
-ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.7.20
+ARG UV_IMAGE=ghcr.io/astral-sh/uv:0.11.1
 FROM ${UV_IMAGE} AS uv-source
 
 FROM python:3.12-slim-bookworm
 
 ARG DEERFLOW_REPO=https://github.com/bytedance/deer-flow.git
-ARG DEERFLOW_REF=3b77a7401b549fa6da4c8e1f8c2c0081d56e3d7a
+ARG DEERFLOW_REF=b47c7838a57732c598ade701d14d175ee5adc518
 ARG NODE_MAJOR=22
 ARG PNPM_VERSION=10.26.2
 ARG APT_MIRROR=
@@ -107,9 +107,9 @@ RUN --mount=type=cache,target=/home/user/.cache/uv,uid=1000,gid=1000 \
     set -eux; \
     cd /home/user/app/deer-flow/backend; \
     if [ -n "${UV_EXTRAS}" ]; then \
-      UV_INDEX_URL="${UV_INDEX_URL}" uv sync --extra "${UV_EXTRAS}"; \
+      UV_INDEX_URL="${UV_INDEX_URL}" uv sync --locked --extra "${UV_EXTRAS}"; \
     else \
-      UV_INDEX_URL="${UV_INDEX_URL}" uv sync; \
+      UV_INDEX_URL="${UV_INDEX_URL}" uv sync --locked; \
     fi
 
 RUN --mount=type=cache,target=/home/user/.local/share/pnpm/store,uid=1000,gid=1000 \

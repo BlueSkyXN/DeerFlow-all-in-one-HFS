@@ -3,7 +3,7 @@
 # $DEER_FLOW_CONFIG_PATH on every startup.
 # Set DEER_FLOW_MANAGED_CONFIG=false before relying on runtime edits under /data.
 
-config_version: 29
+config_version: 34
 log_level: info
 
 # Keep the unified DeerFlow SQLite database under the resolved HFS runtime
@@ -20,7 +20,7 @@ database:
 agent_storage:
   backend: file
 
-# Preserve the current single-process behavior while making schema v29 retry
+# Preserve the current single-process behavior while keeping the reviewed retry
 # defaults explicit. Provider-side quota and budget controls remain authoritative.
 llm_call:
   max_concurrent_calls: 0
