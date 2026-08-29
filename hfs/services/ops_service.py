@@ -119,10 +119,8 @@ SECRET_KEYS = [
     "INFOQUEST_API_KEY",
     "BETTER_AUTH_SECRET",
     "DEER_FLOW_INTERNAL_AUTH_TOKEN",
-    "DEER_FLOW_OPS_TOKEN",
     "OPS_TOKEN",
-    "DEER_FLOW_ADMIN_TOKEN",
-    "ADMIN_TOKEN",
+    "ADMIN_PASSWORD",
 ]
 
 
@@ -168,7 +166,7 @@ def parse_float(
 
 
 def ops_token() -> str:
-    return env("DEER_FLOW_OPS_TOKEN") or env("OPS_TOKEN")
+    return env("OPS_TOKEN")
 
 
 def ops_session_ttl_seconds() -> int:
@@ -708,7 +706,7 @@ OPS_HTML = r"""<!doctype html>
   <h1>DeerFlow Ops</h1>
   <section class="panel">
     <div class="row">
-      <input id="token" type="password" autocomplete="off" placeholder="DEER_FLOW_OPS_TOKEN" size="42" />
+      <input id="token" type="password" autocomplete="off" placeholder="OPS_TOKEN" size="42" />
       <button onclick="api('/_ops/status')">Status</button>
       <button onclick="api('/_ops/health')">Health</button>
       <button onclick="api('/_ops/system')">System</button>
@@ -840,7 +838,7 @@ class OpsHandler(BaseHTTPRequestHandler):
         self.send_json(
             {
                 "error": "unauthorized",
-                "message": "Set DEER_FLOW_OPS_TOKEN and pass X-Ops-Token or Authorization: Bearer <token>.",
+                "message": "Set OPS_TOKEN and pass X-Ops-Token or Authorization: Bearer <token>.",
             },
             401,
         )

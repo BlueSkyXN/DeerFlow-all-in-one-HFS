@@ -4,8 +4,8 @@ set -Eeuo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 BASE_URL="${1:-http://localhost:7860}"
-OPS_TOKEN="${DEER_FLOW_OPS_TOKEN:-${OPS_TOKEN:-}}"
-ADMIN_TOKEN="${DEER_FLOW_ADMIN_TOKEN:-${ADMIN_TOKEN:-}}"
+OPS_TOKEN="${OPS_TOKEN:-}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
 ADMIN_ENABLED="${DEER_FLOW_ADMIN_ENABLED:-${ADMIN_ENABLED:-false}}"
 EXPECTED_DEERFLOW_REF="${DEERFLOW_REF:-$(sed -n 's/^ARG DEERFLOW_REF=//p' "${REPO_ROOT}/Dockerfile" | head -n 1)}"
 
@@ -94,11 +94,11 @@ fi
 
 case "${ADMIN_ENABLED}" in
   1|true|TRUE|yes|YES|on|ON)
-    if [ -n "${ADMIN_TOKEN}" ]; then
-      check_auth /_admin/api/status "Bearer ${ADMIN_TOKEN}" "Authorization"
-      check_auth /_admin/api/actions "Bearer ${ADMIN_TOKEN}" "Authorization"
-      check_auth "/_admin/api/audit?limit=5" "Bearer ${ADMIN_TOKEN}" "Authorization"
-      check_post_auth /_admin/api/actions/run-health-checks "Bearer ${ADMIN_TOKEN}" "Authorization" "run-health-checks"
+    if [ -n "${ADMIN_PASSWORD}" ]; then
+      check_auth /_admin/api/status "Bearer ${ADMIN_PASSWORD}" "Authorization"
+      check_auth /_admin/api/actions "Bearer ${ADMIN_PASSWORD}" "Authorization"
+      check_auth "/_admin/api/audit?limit=5" "Bearer ${ADMIN_PASSWORD}" "Authorization"
+      check_post_auth /_admin/api/actions/run-health-checks "Bearer ${ADMIN_PASSWORD}" "Authorization" "run-health-checks"
     fi
     ;;
 esac

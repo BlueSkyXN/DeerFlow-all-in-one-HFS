@@ -14,11 +14,18 @@ for path in (
     "scripts/service-contract-test.py",
     "scripts/export_hfs_space_bundle.py",
     "scripts/test_hfs_exporter.py",
+    "scripts/hf_space_sync.py",
+    "scripts/hfs_dev.py",
+    "scripts/check_hfs_alignment.py",
+    "scripts/test_hf_space_sync.py",
 ):
     compile(Path(path).read_text(encoding="utf-8"), path, "exec")
 PY
 PYTHONDONTWRITEBYTECODE=1 python3 scripts/service-contract-test.py
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/test_hf_space_sync.py
 PYTHONDONTWRITEBYTECODE=1 python3 -m unittest scripts.test_hfs_exporter
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_hfs_alignment.py . --manifest hfs-dev.toml
+PYTHONDONTWRITEBYTECODE=1 python3 scripts/check_hfs_alignment.py . --manifest hfs-dev.candidate.toml
 
 python3 - <<'PY'
 from __future__ import annotations
@@ -152,12 +159,17 @@ require("webpackMemoryOptimizations: true" in next_config, "HFS Next config must
 require("ignoreBuildErrors: true" in next_config, "HFS Next config must skip only the duplicate in-build typecheck")
 require("--build-arg DEERFLOW_REF=$(DEERFLOW_REF)" in makefile, "Makefile build must pass DEERFLOW_REF")
 expected_manifest = {
-    "standard": "2.0",
+    "standard": "3.0",
     "project": "DeerFlow-all-in-one-HFS",
     "space": "BlueSkyXN/DeerFlow-all-in-one-HFS",
+    "project_class": "preview",
+    "target_role": "primary",
     "sovereignty": "port",
     "lane": "source",
     "version_source": "commit",
+    "space_visibility": "protected",
+    "bucket_visibility": "private",
+    "env_file": ".env",
 }
 expected_deviations = [
     "business-image = UV_IMAGE is a version-pinned build-tool source and is not the DeerFlow business or runtime image"
@@ -165,22 +177,25 @@ expected_deviations = [
 for key, value in expected_manifest.items():
     require(manifest_data.get(key) == value, f"hfs-dev.toml {key} must be {value!r}")
 
-require(
-    candidate_manifest_data.get("space") == "BlueSkyXN/DeerFlow-all-in-one-HFS-v2-candidate",
-    "candidate manifest must select the fixed private candidate Space",
-)
+candidate_expected = {
+    "space": "BlueSkyXN/DeerFlow-all-in-one-HFS-v3-candidate",
+    "target_role": "candidate",
+    "env_file": "local/hfs-targets/candidate.env",
+}
+for key, value in candidate_expected.items():
+    require(candidate_manifest_data.get(key) == value, f"candidate manifest {key} must be {value!r}")
 for key in sorted(set(manifest_data) | set(candidate_manifest_data)):
-    if key != "space":
+    if key not in {"space", "target_role", "env_file"}:
         require(
             manifest_data.get(key) == candidate_manifest_data.get(key),
-            f"candidate manifest differs from production at {key}",
+            f"candidate manifest differs from canonical preview at {key}",
         )
 
 classification_fields = ("local_only", "secrets", "optional_secrets", "variables")
 allowed_manifest_fields = set(expected_manifest) | set(classification_fields) | {"deviations"}
 require(
     set(manifest_data) == allowed_manifest_fields,
-    "hfs-dev.toml must contain only HFS v2 fields and key classifications",
+    "hfs-dev.toml must contain only HFS v3 fields and key classifications",
 )
 require(
     manifest_data.get("deviations") == expected_deviations,
@@ -190,6 +205,9 @@ require(
     {"HF_TOKEN", "GH_TOKEN"}.issubset(set(manifest_data["local_only"])),
     "HFS control credentials must remain local_only",
 )
+require("OPS_TOKEN" in manifest_data["secrets"], "HFS v3 OPS_TOKEN must be a required secret")
+require("ADMIN_PASSWORD" in manifest_data["optional_secrets"], "HFS v3 ADMIN_PASSWORD must be an optional secret")
+require("ADMIN_USERNAME" in manifest_data["variables"], "HFS v3 ADMIN_USERNAME must be a variable")
 require(
     re.search(r"(?:hf_[A-Za-z0-9]{20,}|ghp_[A-Za-z0-9]{20,}|github_pat_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9]{20,})", manifest)
     is None,
@@ -264,12 +282,13 @@ require("environment: hfs-production" in formal_workflow, "formal workflow must 
 require("PUBLISH_FORMAL" in formal_workflow, "formal workflow must require exact upload confirmation")
 require("export_hfs_space_bundle.py export" in formal_workflow, "formal workflow must use the strict exporter")
 require('--source-commit "$SOURCE_REF"' in formal_workflow, "formal workflow must authorize every verifier against the locked source commit")
-require('HF_CLI_VERSION: "1.5.0"' in formal_workflow, "formal workflow must pin huggingface_hub 1.5.0")
-require('HF_CLI_CLICK_VERSION: "8.3.3"' in formal_workflow, "formal workflow must pin click 8.3.3")
+require('HF_CLI_VERSION: "1.25.1"' in formal_workflow, "formal workflow must pin huggingface_hub 1.25.1")
+require('HF_CLI_CLICK_VERSION: "8.4.2"' in formal_workflow, "formal workflow must pin click 8.4.2")
 require("huggingface_hub==${HF_CLI_VERSION}" in formal_workflow, "formal workflow must install the pinned Hugging Face client")
 require("click==${HF_CLI_CLICK_VERSION}" in formal_workflow, "formal workflow must install the direct module CLI dependency")
 require("python3 -m huggingface_hub.cli.hf --help" in formal_workflow, "formal workflow must exercise the module CLI")
 require("python3 -m huggingface_hub.cli.hf upload --help" in formal_workflow, "formal workflow must exercise the upload command")
+require("python3 -m huggingface_hub.cli.hf repos settings --help | grep -- --protected" in formal_workflow, "formal workflow must verify Protected visibility support")
 require("deployed_revision = info.sha" in formal_workflow, "formal workflow must capture the immutable uploaded Space revision")
 require("revision=deployed_revision" in formal_workflow, "formal workflow must read back the immutable uploaded revision")
 require('runtime.stage == "RUNNING"' in formal_workflow, "formal workflow must wait for a running canonical Space")
@@ -312,6 +331,7 @@ require("metrics_payload" in ops and "system_payload" in ops and "persistence_pa
 require('upstream_metadata("version")' in ops and 'upstream_metadata("ref")' in ops, "ops version must report pinned upstream metadata")
 require("localStorage" not in ops, "ops shell must not persist ops tokens in browser storage")
 require("Content-Security-Policy" in ops, "ops service must emit security headers")
+require('return env("OPS_TOKEN")' in ops and "DEER_FLOW_OPS_TOKEN" not in ops, "ops service must accept only the HFS v3 OPS_TOKEN key")
 require("X-DeerFlow-Admin-Intent" in admin, "admin POSTs must require intent header")
 require("X-DeerFlow-Admin-Confirm" in admin, "admin POSTs must require confirmation header")
 require("admin-actions.jsonl" in admin, "admin actions must write audit log")
@@ -322,6 +342,7 @@ require('200 if data["status"] == "ok" else 503' in admin, "admin health checks 
 require("Fixed actions" not in admin, "public admin shell must not disclose write action UI")
 require("localStorage" not in admin, "public admin shell must not persist admin tokens in browser storage")
 require("Content-Security-Policy" in admin, "admin service must emit security headers")
+require('return env("ADMIN_PASSWORD")' in admin and "ADMIN_TOKEN" not in admin and "DEER_FLOW_ADMIN_TOKEN" not in admin, "admin service must accept only the HFS v3 ADMIN_PASSWORD key")
 require("DEER_FLOW_ADMIN_ENABLED=false" in hf_vars, "HF variables example must keep admin APIs disabled by default")
 require("DEERFLOW_REF=" not in hf_vars, "HF runtime variables must not pretend to override Docker build args")
 

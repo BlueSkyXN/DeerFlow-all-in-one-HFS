@@ -46,9 +46,7 @@ SECRET_KEYS = [
     "AUTH_JWT_SECRET",
     "BETTER_AUTH_SECRET",
     "DEER_FLOW_INTERNAL_AUTH_TOKEN",
-    "DEER_FLOW_ADMIN_TOKEN",
-    "ADMIN_TOKEN",
-    "DEER_FLOW_OPS_TOKEN",
+    "ADMIN_PASSWORD",
     "OPS_TOKEN",
     "OPENROUTER_API_KEY",
     "OPENAI_API_KEY",
@@ -96,8 +94,8 @@ def admin_actions_enabled() -> bool:
     )
 
 
-def admin_token() -> str:
-    return env("DEER_FLOW_ADMIN_TOKEN") or env("ADMIN_TOKEN")
+def admin_password() -> str:
+    return env("ADMIN_PASSWORD")
 
 
 def supplied_token(handler: BaseHTTPRequestHandler) -> str:
@@ -108,7 +106,7 @@ def supplied_token(handler: BaseHTTPRequestHandler) -> str:
 
 
 def authorized(handler: BaseHTTPRequestHandler) -> bool:
-    expected = admin_token()
+    expected = admin_password()
     if not admin_enabled() or not expected:
         return False
     return hmac.compare_digest(supplied_token(handler), expected)
@@ -148,13 +146,13 @@ def supervisor_status() -> dict[str, Any]:
 
 def status_payload() -> dict[str, Any]:
     return {
-        "status": "ok" if admin_enabled() and admin_token() else "locked",
+        "status": "ok" if admin_enabled() and admin_password() else "locked",
         "admin_enabled": admin_enabled(),
         "actions_enabled": admin_actions_enabled(),
-        "token_configured": bool(admin_token()),
+        "token_configured": bool(admin_password()),
         "uptime_seconds": round(time.time() - STARTED_AT, 1),
         "supervisor": supervisor_status()
-        if admin_enabled() and admin_token()
+        if admin_enabled() and admin_password()
         else {"processes": []},
     }
 
@@ -316,7 +314,7 @@ ADMIN_HTML = r"""<!doctype html>
   <section class="card">
     <h2>Token</h2>
     <p>The token is kept only in this browser tab and is not stored in browser storage.</p>
-    <div class="row"><input id="token" type="password" autocomplete="off" placeholder="DEER_FLOW_ADMIN_TOKEN" size="48" /></div>
+    <div class="row"><input id="token" type="password" autocomplete="off" placeholder="ADMIN_PASSWORD" size="48" /></div>
   </section>
   <section class="card">
     <h2>Status</h2>
@@ -404,15 +402,15 @@ class AdminHandler(BaseHTTPRequestHandler):
             self.send_json(
                 {
                     "error": "admin_disabled",
-                    "message": "Set DEER_FLOW_ADMIN_ENABLED=true and DEER_FLOW_ADMIN_TOKEN to enable admin APIs.",
+                    "message": "Set DEER_FLOW_ADMIN_ENABLED=true and ADMIN_PASSWORD to enable admin APIs.",
                 },
                 403,
             )
-        elif not admin_token():
+        elif not admin_password():
             self.send_json(
                 {
                     "error": "admin_locked",
-                    "message": "DEER_FLOW_ADMIN_TOKEN is not configured.",
+                    "message": "ADMIN_PASSWORD is not configured.",
                 },
                 403,
             )

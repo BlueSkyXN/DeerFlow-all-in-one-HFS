@@ -18,7 +18,7 @@ license: gpl-3.0
 
 本仓库按 HFS `Pattern A` 对齐：它维护的是上游 DeerFlow 在 HFS 上的可运行交付包，而不是 DeerFlow 产品源码本身。因此仓库根目录必须同时作为 Hugging Face Space root 和 GitHub 维护根，不能再套一层 `cloud/hfs/`。
 
-[hfs-dev.toml](hfs-dev.toml) 使用 HFS v2：`sovereignty="port"`、`lane="source"`、`version_source="commit"`。它只登记项目、Space 和环境变量键名，不声明旧 manifest schema、release pin、seed file 或 mount config。Docker build 阶段仍通过 `DEERFLOW_REPO` / `DEERFLOW_REF` shallow-fetch 上游源码；发布 pin 只由 `Dockerfile` 和 `Makefile` 的相同完整 SHA 直接维护，manifest 不重复 pin。当前默认 pin 为 `b47c7838a57732c598ade701d14d175ee5adc518`，对应 2026-08-19 上游 `main` 的未发布 `2.1.0` 实验版源码；最新正式 Release 仍为 `v2.0.0`。只有本地临时开发才应显式覆盖 `DEERFLOW_REF=main`。
+[hfs-dev.toml](hfs-dev.toml) 使用 breaking HFS v3：`sovereignty="port"`、`lane="source"`、`version_source="commit"`，并显式登记 `preview`、Protected Space、Private bucket 与 `.env` 事实源。它只登记项目、Space 和环境变量键名，不重复维护 release pin、seed file 或 mount config。Docker build 阶段仍通过 `DEERFLOW_REPO` / `DEERFLOW_REF` shallow-fetch 上游源码；发布 pin 只由 `Dockerfile` 和 `Makefile` 的相同完整 SHA 直接维护。当前默认 pin 为 `b47c7838a57732c598ade701d14d175ee5adc518`，对应 2026-08-19 上游 `main` 的未发布 `2.1.0` 实验版源码；最新正式 Release 仍为 `v2.0.0`。只有本地临时开发才应显式覆盖 `DEERFLOW_REF=main`。
 
 HFS 同步的本地值账本是被忽略的 `.env`，公开的 `.env.example` 只提供键名。`Makefile` 的默认 `ENV_FILE` 仍是 `.env.local`，以保持既有本地 Docker 运行兼容；本地开发可继续显式维护和使用 `.env.local`，不要把它当成 HFS 同步输入。
 
@@ -72,9 +72,9 @@ Hugging Face Docker Space
 | `/healthz` | 通过 Nginx 暴露的 HFS readiness alias。 |
 | `/_ops/healthz` | 公开 ops 存活检查。 |
 | `/_ops/readyz` | 公开综合 readiness 检查。 |
-| `/_ops/status`、`/_ops/health`、`/_ops/system`、`/_ops/persistence`、`/_ops/version`、`/_ops/metrics`、`/_ops/logs`、`/_ops/errors`、`/_ops/config` | 需要 `DEER_FLOW_OPS_TOKEN` 的只读诊断面；日志输出会按已知 secret 值做 redaction。 |
+| `/_ops/status`、`/_ops/health`、`/_ops/system`、`/_ops/persistence`、`/_ops/version`、`/_ops/metrics`、`/_ops/logs`、`/_ops/errors`、`/_ops/config` | 需要 `OPS_TOKEN` 的只读诊断面；日志输出会按已知 secret 值做 redaction。 |
 | `/_admin/` | 公开浏览器管理 shell；仅用于输入 tab-local token 和触发受保护 API，本身不得泄露 secret、配置值或写动作能力。 |
-| `/_admin/api/status`、`/_admin/api/config`、`/_admin/api/actions`、`/_admin/api/audit` | admin API，默认由 `DEER_FLOW_ADMIN_ENABLED=false` 关闭；维护窗口启用后仍需要 `DEER_FLOW_ADMIN_TOKEN`。 |
+| `/_admin/api/status`、`/_admin/api/config`、`/_admin/api/actions`、`/_admin/api/audit` | admin API，默认由 `DEER_FLOW_ADMIN_ENABLED=false` 关闭；维护窗口启用后仍需要 `ADMIN_PASSWORD`。 |
 
 ## 必需配置
 
@@ -114,8 +114,8 @@ DEER_FLOW_ADMIN_ACTIONS_ENABLED=false
 OPENAI_API_KEY=<cloudflare-ai-gateway-bearer-token>
 AUTH_JWT_SECRET=<long-random-secret>
 DEER_FLOW_INTERNAL_AUTH_TOKEN=<long-random-token>
-DEER_FLOW_OPS_TOKEN=<ops-token>
-DEER_FLOW_ADMIN_TOKEN=<admin-token>
+OPS_TOKEN=<ops-token>
+ADMIN_PASSWORD=<admin-token>
 ```
 
 `OPENAI_API_KEY` 在当前 HFS 配置中作为 Cloudflare AI Gateway bearer token 使用。默认模型配置见 [hfs/config/config.hfs.yaml](hfs/config/config.hfs.yaml)。
@@ -162,18 +162,18 @@ curl -fsS "$BASE/health"
 curl -fsS "$BASE/api/v1/auth/setup-status"
 ```
 
-最终发布还应使用 `DEER_FLOW_OPS_TOKEN` 调用 `/_ops/version`，确认 `upstream_sha` 等于 Dockerfile 中的 pin，并确认 Hugging Face `runtime.raw.sha` 等于 `hf/main`。
+最终发布还应使用 `OPS_TOKEN` 调用 `/_ops/version`，确认 `upstream_sha` 等于 Dockerfile 中的 pin，并确认 Hugging Face `runtime.raw.sha` 等于 `hf/main`。
 
 带 token 的状态检查：
 
 ```bash
-curl -H "Authorization: Bearer $DEER_FLOW_OPS_TOKEN" \
+curl -H "Authorization: Bearer $OPS_TOKEN" \
   https://blueskyxn-deerflow-all-in-one-hfs.hf.space/_ops/status
-curl -H "X-Ops-Token: $DEER_FLOW_OPS_TOKEN" \
+curl -H "X-Ops-Token: $OPS_TOKEN" \
   https://blueskyxn-deerflow-all-in-one-hfs.hf.space/_ops/errors
 
 # 只有在维护窗口显式设置 DEER_FLOW_ADMIN_ENABLED=true 时才检查 admin API。
-curl -H "Authorization: Bearer $DEER_FLOW_ADMIN_TOKEN" \
+curl -H "Authorization: Bearer $ADMIN_PASSWORD" \
   https://blueskyxn-deerflow-all-in-one-hfs.hf.space/_admin/api/status
 ```
 
