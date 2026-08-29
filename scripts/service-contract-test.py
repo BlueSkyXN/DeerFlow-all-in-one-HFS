@@ -144,14 +144,14 @@ def main() -> None:
                     runtime_home / "extensions_config.json"
                 ),
                 "DEER_FLOW_OPS_PORT": str(ops_port),
-                "DEER_FLOW_OPS_TOKEN": "ops-secret",
+                "OPS_TOKEN": "ops-secret",
                 "DEER_FLOW_OPS_DEFAULT_CHECKS_ENABLED": "false",
                 "DEER_FLOW_OPS_LOG_DIR": str(log_dir),
                 "DEER_FLOW_OPS_COOKIE_SECURE": "false",
                 "DEER_FLOW_ADMIN_PORT": str(admin_port),
                 "DEER_FLOW_ADMIN_ENABLED": "true",
                 "DEER_FLOW_ADMIN_ACTIONS_ENABLED": "false",
-                "DEER_FLOW_ADMIN_TOKEN": "admin-secret",
+                "ADMIN_PASSWORD": "admin-secret",
                 "DEER_FLOW_NGINX_BIN": nginx_bin,
                 "DEER_FLOW_NGINX_CONFIG": str(nginx_config),
             }

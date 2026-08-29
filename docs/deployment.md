@@ -14,7 +14,7 @@ sdk: docker
 app_port: 7860
 ```
 
-HF 会用根目录 `Dockerfile` 构建镜像。根 `hfs-dev.toml` 是 HFS v2 语义登记：本仓是 `port` / `source` / `commit`，仅登记环境变量键名；它不是部署 manifest、seed file 或 build pin 的副本。`DEERFLOW_REF` 的完整 SHA 只由 `Dockerfile` 和 `Makefile` 维护。
+HF 会用根目录 `Dockerfile` 构建镜像。根 `hfs-dev.toml` 是 HFS v3 语义登记：本仓是 `preview` / `port` / `source` / `commit`，并显式登记 Protected Space、Private bucket 与 `.env` 事实源；它不是 seed file 或 build pin 的副本。`DEERFLOW_REF` 的完整 SHA 只由 `Dockerfile` 和 `Makefile` 维护。
 
 ## 2. 推送代码
 
@@ -70,7 +70,7 @@ DEER_FLOW_ADMIN_ENABLED=false
 DEER_FLOW_ADMIN_ACTIONS_ENABLED=false
 ```
 
-发布态 build pin 不在 HF Variables 或 HFS v2 manifest 中配置，而是直接提交在 `Dockerfile ARG DEERFLOW_REF`，并由 `Makefile` 保持相同完整 SHA。当前 pin 为 `b47c7838a57732c598ade701d14d175ee5adc518`。HF Variables 不会自动变成 Docker build args。
+发布态 build pin 不在 HF Variables 或 HFS v3 manifest 中配置，而是直接提交在 `Dockerfile ARG DEERFLOW_REF`，并由 `Makefile` 保持相同完整 SHA。当前 pin 为 `b47c7838a57732c598ade701d14d175ee5adc518`。HF Variables 不会自动变成 Docker build args。
 
 ## 5. Secrets
 
@@ -85,8 +85,8 @@ OPENAI_API_KEY=<cloudflare-ai-gateway-bearer-token>
 ```bash
 AUTH_JWT_SECRET=<long-random-secret>
 DEER_FLOW_INTERNAL_AUTH_TOKEN=<long-random-token>
-DEER_FLOW_OPS_TOKEN=<ops-token>
-DEER_FLOW_ADMIN_TOKEN=<admin-token>
+OPS_TOKEN=<ops-token>
+ADMIN_PASSWORD=<admin-token>
 ```
 
 可选 provider：
@@ -162,15 +162,15 @@ curl -fsS "$BASE/api/v1/auth/setup-status"
 受保护端点：
 
 ```bash
-curl -H "Authorization: Bearer $DEER_FLOW_OPS_TOKEN" \
+curl -H "Authorization: Bearer $OPS_TOKEN" \
   "$BASE/_ops/status"
-curl -H "X-Ops-Token: $DEER_FLOW_OPS_TOKEN" \
+curl -H "X-Ops-Token: $OPS_TOKEN" \
   "$BASE/_ops/errors"
-curl -H "X-Ops-Token: $DEER_FLOW_OPS_TOKEN" \
+curl -H "X-Ops-Token: $OPS_TOKEN" \
   "$BASE/_ops/version"
 
 # 只有显式启用 DEER_FLOW_ADMIN_ENABLED=true 时才检查 admin API。
-curl -H "Authorization: Bearer $DEER_FLOW_ADMIN_TOKEN" \
+curl -H "Authorization: Bearer $ADMIN_PASSWORD" \
   "$BASE/_admin/api/status"
 ```
 

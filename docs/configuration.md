@@ -37,7 +37,7 @@
 | `DEER_FLOW_ADMIN_ENABLED` | `false` | 是否启用 admin API。公开 demo 默认关闭；维护窗口才设为 true。 |
 | `DEER_FLOW_ADMIN_ACTIONS_ENABLED` | `false` | 是否允许 reload/restart 固定写动作。默认 false。 |
 
-`DEERFLOW_REF`、`APT_MIRROR`、`NPM_REGISTRY`、`UV_INDEX_URL` 是本地 build args，不是 HF runtime Variables。Hugging Face Docker Space 不会把 Settings -> Variables 自动传给 `Dockerfile ARG`。发布 pin 只由 `Dockerfile` 和 `Makefile` 的同一完整 SHA 维护，HFS v2 manifest 不重复登记它；本地可以通过 `make build DEERFLOW_REF=main` 临时覆盖。
+`DEERFLOW_REF`、`APT_MIRROR`、`NPM_REGISTRY`、`UV_INDEX_URL` 是本地 build args，不是 HF runtime Variables。Hugging Face Docker Space 不会把 Settings -> Variables 自动传给 `Dockerfile ARG`。发布 pin 只由 `Dockerfile` 和 `Makefile` 的同一完整 SHA 维护，HFS v3 manifest 不重复登记它；本地可以通过 `make build DEERFLOW_REF=main` 临时覆盖。
 
 ## Managed config 安全与兼容默认
 
@@ -51,8 +51,8 @@
 | `AUTH_JWT_SECRET` | 推荐 | 当前 Gateway 登录 session 的 JWT signing secret，应固定。未设置时 entrypoint 会在 `$DEER_FLOW_HOME/.jwt_secret` 生成。 |
 | `BETTER_AUTH_SECRET` | 仅迁移 | 旧 HFS 配置兼容输入；仅当 `AUTH_JWT_SECRET` 缺失时映射过去，新部署不要继续使用。 |
 | `DEER_FLOW_INTERNAL_AUTH_TOKEN` | 推荐 | frontend 到 Gateway 的内部认证 token，应固定。 |
-| `DEER_FLOW_OPS_TOKEN` | 推荐 | 访问 `/_ops/status`、`/_ops/health`、`/_ops/system`、`/_ops/persistence`、`/_ops/version`、`/_ops/metrics`、`/_ops/logs`、`/_ops/errors` 和 `/_ops/config`。 |
-| `DEER_FLOW_ADMIN_TOKEN` | 推荐 | 访问 `/_admin/api/*`。 |
+| `OPS_TOKEN` | 推荐 | 访问 `/_ops/status`、`/_ops/health`、`/_ops/system`、`/_ops/persistence`、`/_ops/version`、`/_ops/metrics`、`/_ops/logs`、`/_ops/errors` 和 `/_ops/config`。 |
+| `ADMIN_PASSWORD` | 推荐 | 访问 `/_admin/api/*`。 |
 | `OPENROUTER_API_KEY` | 可选 | 仅在你手动改用 OpenRouter 模型时需要。 |
 | `TAVILY_API_KEY` | 可选 | Tavily search provider。 |
 | `SERPER_API_KEY` | 可选 | Serper search provider。 |
@@ -121,4 +121,4 @@ make run
 - `hfs/config/config.hfs.yaml` 改动需要推送并等待远端 rebuild，属于后续门禁。
 - `DEER_FLOW_MANAGED_CONFIG=true` 时，entrypoint **每次启动**都会覆盖 `$DEER_FLOW_CONFIG_PATH`（当前为 `/data/deer-flow/config.yaml`）；这是 wrapper-managed config，不登记 `seed_file` 或 mount config。
 - 如果设为 false，运行态 config 会成为 source of truth，仓库模板不再自动接管，配置漂移由运行方负责。
-- Docker build pin 来自已提交的 `Dockerfile ARG DEERFLOW_REF=<commit-sha>`，并由 `Makefile` 直接保持一致；HF runtime Variables 和 HFS v2 manifest 都不能替代或重复它。
+- Docker build pin 来自已提交的 `Dockerfile ARG DEERFLOW_REF=<commit-sha>`，并由 `Makefile` 直接保持一致；HF runtime Variables 和 HFS v3 manifest 都不能替代或重复它。

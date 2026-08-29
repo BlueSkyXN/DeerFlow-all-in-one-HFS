@@ -74,7 +74,7 @@ auth:
 /_ops/readyz
 ```
 
-需要 `DEER_FLOW_OPS_TOKEN`：
+需要 `OPS_TOKEN`：
 
 ```text
 /_ops/status
@@ -104,7 +104,7 @@ Nginx 对 `/_ops/*` 只允许 `GET`，并把 request body limit 收窄到 `16k`�
 
 `/_admin/` 可以公开路由，但它只是 token 输入和 API 调用 shell；默认不得返回 secret、完整配置、进程详情或任何写能力。
 
-默认 `DEER_FLOW_ADMIN_ENABLED=false`，admin API 关闭，只保留 HTML shell。维护窗口显式启用后，API 仍需要 `DEER_FLOW_ADMIN_TOKEN`：
+默认 `DEER_FLOW_ADMIN_ENABLED=false`，admin API 关闭，只保留 HTML shell。维护窗口显式启用后，API 仍需要 `ADMIN_PASSWORD`：
 
 ```text
 /_admin/api/status
@@ -164,8 +164,8 @@ OPENAI_API_KEY
 OPENROUTER_API_KEY
 AUTH_JWT_SECRET
 DEER_FLOW_INTERNAL_AUTH_TOKEN
-DEER_FLOW_OPS_TOKEN
-DEER_FLOW_ADMIN_TOKEN
+OPS_TOKEN
+ADMIN_PASSWORD
 TAVILY_API_KEY
 SERPER_API_KEY
 JINA_API_KEY

@@ -43,11 +43,11 @@ hf spaces logs BlueSkyXN/DeerFlow-all-in-one-HFS --build -n 300
 带 token 查看详细状态、具体错误、路径和 upstream SHA：
 
 ```bash
-curl -H "Authorization: Bearer $DEER_FLOW_OPS_TOKEN" \
+curl -H "Authorization: Bearer $OPS_TOKEN" \
   https://blueskyxn-deerflow-all-in-one-hfs.hf.space/_ops/status
-curl -H "X-Ops-Token: $DEER_FLOW_OPS_TOKEN" \
+curl -H "X-Ops-Token: $OPS_TOKEN" \
   https://blueskyxn-deerflow-all-in-one-hfs.hf.space/_ops/errors
-curl -H "X-Ops-Token: $DEER_FLOW_OPS_TOKEN" \
+curl -H "X-Ops-Token: $OPS_TOKEN" \
   https://blueskyxn-deerflow-all-in-one-hfs.hf.space/_ops/version
 ```
 
@@ -187,7 +187,7 @@ UV_INDEX_URL=https://pypi.org/simple
 
 ```bash
 DEER_FLOW_ADMIN_ENABLED=true
-DEER_FLOW_ADMIN_TOKEN=<secret>
+ADMIN_PASSWORD=<secret>
 ```
 
 写动作还需要：

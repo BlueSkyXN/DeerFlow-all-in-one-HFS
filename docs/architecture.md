@@ -120,7 +120,7 @@ supports_thinking: true
 
 - `/_ops/healthz`：公开，返回 coarse ops service 存活状态，不返回 upstream SHA 或文件路径。
 - `/_ops/readyz`：公开，返回 coarse readiness 和各检查项名称/status，不返回内部路径、错误详情或 upstream SHA。
-- `/_ops/status`：需要 `Authorization: Bearer $DEER_FLOW_OPS_TOKEN`，返回详细 readiness、upstream SHA 和 supervisor status。
+- `/_ops/status`：需要 `Authorization: Bearer $OPS_TOKEN`，返回详细 readiness、upstream SHA 和 supervisor status。
 - `/_ops/health`：需要 token，返回详细 readiness，HTTP 状态随 readiness 变化。
 - `/_ops/system`：需要 token，返回 Python/runtime、内存和磁盘摘要。
 - `/_ops/persistence`：需要 token，检查 `$DEER_FLOW_HOME`、SQLite 目录/文件、日志、run 目录和持久化探针，并把 `users/` 与旧目录作为观察项返回。
@@ -136,7 +136,7 @@ Ops 服务不提供命令执行、不读取任意文件、不接受用户自定�
 
 `hfs/services/admin_service.py` 是受限管理服务：
 
-- `/_admin/`：公开浏览器 shell，用于输入 `DEER_FLOW_ADMIN_TOKEN` 并调用受保护 API；shell 本身不得泄露 secret、配置值或管理能力。
+- `/_admin/`：公开浏览器 shell，用于输入 `ADMIN_PASSWORD` 并调用受保护 API；shell 本身不得泄露 secret、配置值或管理能力。
 - `/_admin/api/status`：默认由 `DEER_FLOW_ADMIN_ENABLED=false` 关闭；维护窗口启用后需要 token，返回 admin 状态和 supervisor 进程状态。
 - `/_admin/api/config`：默认关闭；维护窗口启用后需要 token，返回安全配置和 secret presence。
 - `/_admin/api/actions`：默认关闭；维护窗口启用后需要 token，返回当前允许的 read-only/write action 清单。
